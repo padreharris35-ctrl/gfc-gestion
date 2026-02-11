@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComptaGFC | Firebase PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f1f5f9; }
+        .excel-table { width: 100%; border-collapse: collapse; background: white; }
+        .excel-table th { background: #003366; color: white; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; position: sticky; top: 0; }
+        .excel-table td { border: 1px solid #e2e8f0; padding: 8px 12px; font-size: 13px; color: #334155; }
+        .excel-table tr:nth-child(even) { background-color: #f8fafc; }
+        .status-cloud { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .sync-ok { background: #dcfce7; color: #166534; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <header class="bg-[#003366] text-white p-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center gap-4">
+            <i class="fas fa-database text-xl text-blue-400"></i>
+            <h1 class="text-xl font-bold italic">Compta<span class="text-red-500">GFC</span> <span class="text-[10px] bg-blue-500 px-2 py-0.5 rounded ml-2">PRO</span></h1>
+        </div>
+        <div id="statSolde" class="text-xl font-mono font-bold text-emerald-400">0 FCFA</div>
+    </header>
+
+    <nav class="bg-white border-b p-3 flex justify-between items-center px-6">
+        <div class="flex gap-2">
+            <button onclick="openModal('entry')" class="bg-[#003366] text-white px-4 py-2 rounded text-xs font-bold uppercase italic shadow-sm hover:bg-slate-800">
+                <i class="fas fa-plus mr-1"></i> Saisir une opération
+            </button>
+            <button onclick="exportPDF()" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold uppercase italic shadow-sm hover:bg-red-700">
+                <i class="fas fa-print mr-1"></i> PDF Papier En-tête
+            </button>
+            <span id="syncStatus" class="status-cloud sync-ok flex items-center gap-1"><i class="fas fa-cloud"></i> Connecté</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <select id="filterMonth" onchange="render()" class="border p-1.5 rounded text-xs font-semibold">
+                <option value="ALL">Tous les mois</option>
+                <option value="0">Janvier</option><option value="1">Fevrier</option><option value="2">Mars</option>
+                <option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
+                <option value="6">Juillet</option><option value="7">Aout</option><option value="8">Septembre</option>
+                <option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Decembre</option>
+            </select>
+            <select id="filterYear" onchange="render()" class="border p-1.5 rounded text-xs font-semibold"></select>
+        </div>
+    </nav>
+
+    <main class="flex-1 overflow-auto p-6">
+        <div class="border border-slate-300 shadow-sm rounded overflow-hidden">
+            <table class="excel-table">
+                <thead>
+                    <tr>
+                        <th class="w-12 text-center">N°</th>
+                        <th class="w-24">Date</th>
+                        <th>Libelle</th>
+                        <th>Tiers</th>
+                        <th class="w-28">Mode</th>
+                        <th class="text-right w-40">Montant (FCFA)</th>
+                        <th class="w-12"></th>
+                    </tr>
+                </thead>
+                <tbody id="excelBody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="modalEntry" class="fixed inset-0 bg-black/60 z-[100] hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-[500px] shadow-2xl rounded-lg overflow-hidden">
+            <div class="bg-[#003366] text-white p-4 font-bold">NOUVEL ENREGISTREMENT</div>
+            <div class="p-6 grid grid-cols-2 gap-4">
+                <input type="text" id="f_lib" placeholder="Désignation" class="col-span-2 border p-2 text-sm rounded outline-none focus:border-blue-500">
+                <input type="text" id="f_prov" placeholder="Tiers" class="col-span-2 border p-2 text-sm rounded outline-none focus:border-blue-500">
+                <select id="f_type" class="border p-2 text-sm font-bold text-blue-900 rounded"><option value="ENTREE">RECETTE (+)</option><option value="SORTIE">DEPENSE (-)</option></select>
+                <input type="number" id="f_mt" placeholder="Montant" class="border p-2 text-sm font-bold text-emerald-600 rounded">
+                <select id="f_mode" class="border p-2 text-sm rounded"><option>Espece</option><option>Virement</option><option>Mobile Money</option><option>Cheque</option></select>
+                <input type="date" id="f_date" class="border p-2 text-sm rounded">
+                <button onclick="saveToFirebase()" class="col-span-2 bg-[#003366] text-white p-3 font-bold uppercase text-xs mt-2 rounded">Enregistrer</button>
+                <button onclick="closeModal('entry')" class="col-span-2 text-slate-400 text-xs font-bold uppercase">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FIREBASE_URL = "https://comptagfc-c67aa-default-rtdb.firebaseio.com/transactions.json";
+        const ADMIN_PASS = "ADMIN123";
+        let transactions = [];
+
+        async function fetchFirebase() {
+            try {
+                const response = await fetch(FIREBASE_URL);
+                const data = await response.json();
+                transactions = data ? Object.keys(data).map(key => ({idFirebase: key, ...data[key]})) : [];
+                render();
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveToFirebase() {
+            const lib = document.getElementById('f_lib').value;
+            const mt = parseFloat(document.getElementById('f_mt').value);
+            if(!lib || !mt) return alert("Champs obligatoires !");
+            if(prompt("Code ADMIN ?") !== ADMIN_PASS) return;
+            const newTx = {
+                date: document.getElementById('f_date').value,
+                libelle: lib,
+                provenance: document.getElementById('f_prov').value || "-",
+                type: document.getElementById('f_type').value,
+                mode: document.getElementById('f_mode').value,
+                montant: mt,
+                timestamp: Date.now()
+            };
+            await fetch(FIREBASE_URL, { method: 'POST', body: JSON.stringify(newTx) });
+            closeModal('entry');
+            fetchFirebase();
+        }
+
+        async function deleteTx(idFirebase) {
+            if(prompt("ADMIN Code ?") !== ADMIN_PASS) return;
+            const delUrl = FIREBASE_URL.replace(".json", `/${idFirebase}.json`);
+            await fetch(delUrl, { method: 'DELETE' });
+            fetchFirebase();
+        }
+
+        function render() {
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            const body = document.getElementById('excelBody');
+            body.innerHTML = '';
+            let total = 0;
+            const filtered = transactions.filter(t => {
+                const d = new Date(t.date);
+                return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
+            }).sort((a,b) => new Date(a.date) - new Date(b.date));
+            filtered.forEach((t, i) => {
+                const isE = t.type === 'ENTREE';
+                total += isE ? t.montant : -t.montant;
+                body.innerHTML += `<tr><td class="text-center opacity-30">${i+1}</td><td>${t.date}</td><td class="font-bold uppercase">${t.libelle}</td><td class="uppercase">${t.provenance}</td><td class="text-xs uppercase">${t.mode}</td><td class="text-right font-bold ${isE?'text-emerald-600':'text-red-600'}">${isE?'+':'-'} ${t.montant.toLocaleString('fr-FR')}</td><td class="text-center"><button onclick="deleteTx('${t.idFirebase}')"><i class="fas fa-trash text-slate-200"></i></button></td></tr>`;
+            });
+            document.getElementById('statSolde').innerText = total.toLocaleString('fr-FR') + " FCFA";
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            const moisLabel = document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text.toUpperCase();
+
+            // Titre de période centré (Espace haut respecté)
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text(`JOURNAL DE CAISSE : ${moisLabel} ${y}`, 105, 65, { align: "center" });
+
+            let totalPeriode = 0;
+            const filtered = transactions.filter(t => {
+                const d = new Date(t.date);
+                return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
+            }).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            const pdfData = filtered.map(t => {
+                const mt = t.montant;
+                totalPeriode += (t.type === 'ENTREE' ? mt : -mt);
+                const mtClean = new Intl.NumberFormat('en-US').format(mt).replace(/,/g, ' '); 
+                return [
+                    t.date, 
+                    t.libelle.toUpperCase(), 
+                    t.provenance.toUpperCase(), 
+                    t.mode.toUpperCase(), 
+                    (t.type == 'ENTREE' ? '+' : '-') + " " + mtClean
+                ];
+            });
+
+            // Ligne de total formatée proprement
+            const totalNettoye = new Intl.NumberFormat('en-US').format(Math.abs(totalPeriode)).replace(/,/g, ' ');
+            const signeTotal = totalPeriode >= 0 ? '+' : '-';
+
+            doc.autoTable({
+                startY: 70,
+                head: [['DATE', 'DESIGNATION', 'TIERS', 'MODE', 'MONTANT (FCFA)']],
+                body: pdfData,
+                theme: 'grid',
+                styles: { font: "helvetica", fontSize: 8 },
+                headStyles: { fillColor: [0, 51, 102], halign: 'center' },
+                columnStyles: { 4: { halign: 'right', fontStyle: 'bold' } },
+                margin: { top: 70, bottom: 45 },
+                // AJOUT DU TOTAL EN BAS DU TABLEAU
+                foot: [[
+                    { content: 'SOLDE TOTAL DE LA PERIODE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
+                    { content: signeTotal + " " + totalNettoye, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }
+                ]],
+                footStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontSize: 9, lineHeight: 1.5 }
+            });
+
+            doc.save(`Journal_${moisLabel}_${y}.pdf`);
+        }
+
+        function setupYears() {
+            const s = document.getElementById('filterYear');
+            const curY = new Date().getFullYear();
+            for(let y=curY-1; y<=curY+2; y++){ 
+                let o = document.createElement('option'); o.value=y; o.text=y; 
+                if(y==curY) o.selected=true; 
+                s.add(o); 
+            }
+        }
+
+        function openModal(id) { document.getElementById('modalEntry').classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById('modalEntry').classList.add('hidden'); }
+        
+        setupYears();
+        document.getElementById('f_date').valueAsDate = new Date();
+        fetchFirebase();
+    </script>
+</body>
+</html>
