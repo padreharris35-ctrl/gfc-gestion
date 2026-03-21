@@ -170,28 +170,63 @@
         }
 
         async function saveToSupabase() {
-            const lib = document.getElementById('f_lib').value;
-            const mt = parseFloat(document.getElementById('f_mt').value);
-            const dt = document.getElementById('f_date').value;
+    const lib = document.getElementById('f_lib').value;
+    const mt = parseFloat(document.getElementById('f_mt').value);
+    const dt = document.getElementById('f_date').value;
+    const type = document.getElementById('f_type').value;
 
-            if(!lib || isNaN(mt) || !dt) return alert("Remplissez Libellé, Montant et Date !");
+    if(!lib || isNaN(mt) || !dt) return alert("Veuillez remplir les champs obligatoires !");
 
-            const newTx = {
-                date: dt, libelle: lib, provenance: document.getElementById('f_prov').value || "-",
-                type: document.getElementById('f_type').value, mode: document.getElementById('f_mode').value, montant: mt
-            };
+    // --- AJOUT DE LA VALIDATION ---
+    const confirmation = confirm(
+        `CONFIRMATION D'ENREGISTREMENT\n\n` +
+        `Opération : ${lib.toUpperCase()}\n` +
+        `Type : ${type}\n` +
+        `Montant : ${mt.toLocaleString('fr-FR')} FCFA\n\n` +
+        `Voulez-vous valider cette opération ?`
+    );
 
-            const { error } = await supabaseClient.from('transactions').insert([newTx]);
-            if (error) alert("Erreur SQL: " + error.message);
-            else { closeModal(); fetchSupabase(); }
-        }
+    if (!confirmation) return; // Annule l'envoi si l'utilisateur clique sur "Annuler"
+
+    const newTx = {
+        date: dt, 
+        libelle: lib, 
+        provenance: document.getElementById('f_prov').value || "-",
+        type: type, 
+        mode: document.getElementById('f_mode').value, 
+        montant: mt
+    };
+
+    const { error } = await supabaseClient.from('transactions').insert([newTx]);
+    if (error) alert("Erreur SQL: " + error.message);
+    else { 
+        closeModal(); 
+        fetchSupabase(); 
+    }
+}
 
         async function deleteTx(id) {
-            if(confirm("Confirmer la suppression ?")) {
-                const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
-                if (!error) fetchSupabase();
-            }
+    // --- AJOUT DU CODE DE SÉCURITÉ ---
+    const codeAdmin = "2026"; // Vous pouvez changer ce code ici
+    const saisie = prompt("SÉCURITÉ : Veuillez saisir le code administrateur pour supprimer cette ligne :");
+
+    if (saisie === null) return; // L'utilisateur a cliqué sur annuler
+
+    if (saisie === codeAdmin) {
+        const { error } = await supabaseClient
+            .from('transactions')
+            .delete()
+                .eq('id', id);
+        
+        if (error) {
+            alert("Erreur lors de la suppression");
+        } else {
+            fetchSupabase();
         }
+    } else {
+        alert("CODE INCORRECT. Suppression annulée.");
+    }
+}
 
         // --- 4. AFFICHAGE ---
         function render() {
