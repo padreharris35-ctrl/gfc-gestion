@@ -140,18 +140,22 @@
         function closeModal() { document.getElementById('modalEntry').classList.add('hidden'); }
 
         function setupYears() {
-            const s = document.getElementById('filterYear');
-            if(!s) return;
-            const curY = new Date().getFullYear();
-            s.innerHTML = ''; 
-            // Affiche 5 ans en arrière et 2 ans dans le futur
-            for(let y = curY - 5; y <= curY + 2; y++){ 
-                let o = document.createElement('option'); 
-                o.value = y; o.text = y; 
-                if(y == curY) o.selected = true; 
-                s.add(o); 
-            }
-        }
+    const s = document.getElementById('filterYear');
+    if(!s) return;
+    
+    const curY = new Date().getFullYear();
+    s.innerHTML = ''; // Nettoie le sélecteur
+    
+    // On boucle de 5 ans en arrière à 2 ans dans le futur
+    for(let y = curY - 5; y <= curY + 2; y++){ 
+        let o = document.createElement('option'); 
+        o.value = y; 
+        o.text = y; 
+        if(y === curY) o.selected = true; 
+        s.add(o); 
+    }
+    console.log("Années chargées avec succès");
+}
 
         // --- 3. LOGIQUE SUPABASE ---
         async function fetchSupabase() {
