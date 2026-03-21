@@ -268,41 +268,39 @@
             document.getElementById('statSolde').innerText = total.toLocaleString('fr-FR') + " FCFA";
         }
 
-        function exportPDF() {
+        ffunction exportPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4'); // Format A4 portrait
     
-    // Récupération des filtres pour le titre
     const m = document.getElementById('filterMonth').value;
     const y = document.getElementById('filterYear').value;
-    const moisSelectionne = document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text.toUpperCase();
-    const periodeLabel = m === 'ALL' ? `ANNÉE ${y}` : `${moisSelectionne} ${y}`;
+    const moisLabel = document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text.toUpperCase();
+    const titrePeriode = m === 'ALL' ? `ANNÉE ${y}` : `${moisLabel} ${y}`;
 
-    // --- EN-TÊTE DU PDF ---
+    // --- EN-TÊTE ULTRA-VISIBLE ---
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(0, 51, 102); // Bleu foncé ECF
-    doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
+    doc.setFontSize(18);
+    doc.setTextColor(0, 51, 102); 
+    doc.text("GBELEBAN FOOTBALL CLUB (GFC)", 105, 15, { align: "center" });
     
-    doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100); // Gris pour le sous-titre
-    doc.text(`JOURNAL DE TRESORERIE : ${periodeLabel}`, 105, 22, { align: "center" });
+    doc.setFontSize(12);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`JOURNAL DE TRESORERIE : ${titrePeriode}`, 105, 22, { align: "center" });
     
-    // Petite ligne de séparation
     doc.setDrawColor(0, 51, 102);
-    doc.setLineWidth(0.5);
-    doc.line(40, 25, 170, 25);
+    doc.setLineWidth(0.8);
+    doc.line(20, 25, 190, 25);
 
     // --- PRÉPARATION DES DONNÉES ---
-    let totalPeriode = 0;
-    const dataFiltrée = transactions.filter(t => {
+    let cumulSolde = 0;
+    const filtered = transactions.filter(t => {
         const d = new Date(t.date);
         return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date)); // Tri par date chronologique
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const corpsTableau = dataFiltrée.map(t => {
+    const rows = filtered.map(t => {
         const isE = t.type === 'ENTREE';
-        totalPeriode += isE ? t.montant : -t.montant;
+        cumulSolde += isE ? t.montant : -t.montant;
         return [
             t.date, 
             t.libelle.toUpperCase(), 
@@ -312,25 +310,40 @@
         ];
     });
 
-    // --- GÉNÉRATION DU TABLEAU ---
+    // --- TABLEAU CONFIGURÉ POUR LA VISIBILITÉ ---
     doc.autoTable({
-        startY: 32,
+        startY: 30,
         head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
-        body: corpsTableau,
-        theme: 'grid',
-        headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
+        body: rows,
+        theme: 'striped', // Lignes alternées pour la lecture
+        headStyles: { 
+            fillColor: [0, 51, 102], 
+            textColor: [255, 255, 255], 
+            fontSize: 10, 
+            halign: 'center',
+            cellPadding: 3
+        },
+        bodyStyles: { 
+            fontSize: 9, 
+            textColor: [40, 40, 40],
+            cellPadding: 3
+        },
         columnStyles: {
-            4: { halign: 'right', fontStyle: 'bold' } // Montant à droite
+            0: { cellWidth: 25 }, // Date
+            1: { cellWidth: 'auto' }, // Désignation (prend le reste)
+            2: { cellWidth: 35 }, // Tiers
+            3: { cellWidth: 25 }, // Mode
+            4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' } // Montant bien large à droite
         },
         foot: [[
-            { content: 'SOLDE NET DE LA PÉRIODE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
-            { content: totalPeriode.toLocaleString('fr-FR') + " FCFA", styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }
+            { content: 'SOLDE FINAL DE LA PÉRIODE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } },
+            { content: cumulSolde.toLocaleString('fr-FR') + " FCFA", styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, fillColor: [220, 255, 220] } }
         ]],
-        styles: { fontSize: 8 }
+        margin: { top: 30 },
+        styles: { overflow: 'linebreak' } // Retour à la ligne si le texte est trop long
     });
 
-    // Sauvegarde avec nom de fichier clair
-    doc.save(`Journal_GFC_${periodeLabel.replace(' ', '_')}.pdf`);
+    doc.save(`GFC_Compta_${titrePeriode.replace(' ', '_')}.pdf`);
 }
         // --- 5. INITIALISATION ---
         window.onload = () => {
