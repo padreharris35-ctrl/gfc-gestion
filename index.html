@@ -157,7 +157,7 @@
             if(!s) return;
             const curY = new Date().getFullYear();
             s.innerHTML = ''; 
-            for(let y = curY - 5; y <= curY + 2; y++){ 
+            for(let y = curY - 5; y <= curY + 25; y++){ 
                 let o = document.createElement('option'); 
                 o.value = y; o.text = y; 
                 if(y === curY) o.selected = true; 
@@ -166,9 +166,14 @@
         }
 
         // Nettoyage strict des montants pour éviter les bugs d'affichage
-        const formatArgent = (num) => {
-            return new Intl.NumberFormat('fr-FR').format(num).replace(/\u00a0/g, ' ');
-        };
+       const formatArgentPDF = (num) => {
+    // On formate le nombre, puis on force le remplacement de TOUS les types d'espaces
+    // par un espace standard (touche espace du clavier) que le PDF accepte.
+    return new Intl.NumberFormat('fr-FR').format(num)
+               .replace(/\s/g, ' ')      // Remplace les espaces normaux
+               .replace(/\u00a0/g, ' ')  // Remplace les espaces insécables
+               .replace(/\u202f/g, ' '); // Remplace les espaces fins (utilisés en FR)
+};
 
         async function fetchSupabase() {
             try {
@@ -248,63 +253,77 @@
         }
 
         // 4. GENERATION PDF AVEC PERIODE PERSONNALISÉE
-        window.exportPDF = function() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const dStart = document.getElementById('pdf_start').value;
-            const dEnd = document.getElementById('pdf_end').value;
+       window.exportPDF = function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    const dStart = document.getElementById('pdf_start').value;
+    const dEnd = document.getElementById('pdf_end').value;
 
-            if (!dStart || !dEnd) return alert("Veuillez choisir une date de DEBUT et de FIN.");
+    if (!dStart || !dEnd) return alert("Veuillez choisir une date de DEBUT et de FIN.");
 
-            const labelD1 = new Date(dStart).toLocaleDateString('fr-FR');
-            const labelD2 = new Date(dEnd).toLocaleDateString('fr-FR');
+    const labelD1 = new Date(dStart).toLocaleDateString('fr-FR');
+    const labelD2 = new Date(dEnd).toLocaleDateString('fr-FR');
 
-            // En-tête PDF
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(16);
-            doc.setTextColor(0, 51, 102);
-            doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
-            
-            doc.setFontSize(11);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`JOURNAL DE TRESORERIE DU ${labelD1} AU ${labelD2}`, 105, 22, { align: "center" });
-            doc.line(20, 25, 190, 25);
+    // En-tête
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(0, 51, 102);
+    doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
+    
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`JOURNAL DE TRESORERIE DU ${labelD1} AU ${labelD2}`, 105, 22, { align: "center" });
+    doc.line(20, 25, 190, 25);
 
-            let netFinal = 0;
-            const tableData = transactions.filter(t => {
-                return t.date >= dStart && t.date <= dEnd;
-            }).sort((a,b) => new Date(a.date) - new Date(b.date))
-            .map(t => {
-                const isE = t.type === 'ENTREE';
-                netFinal += isE ? t.montant : -t.montant;
-                return [t.date, t.libelle.toUpperCase(), t.provenance.toUpperCase(), t.mode.toUpperCase(), (isE?'+ ':'- ') + formatArgent(t.montant)];
-            });
+    let netFinal = 0;
+    const tableData = transactions.filter(t => {
+        return t.date >= dStart && t.date <= dEnd;
+    }).sort((a,b) => new Date(a.date) - new Date(b.date))
+    .map(t => {
+        const isE = t.type === 'ENTREE';
+        netFinal += isE ? t.montant : -t.montant;
+        
+        // UTILISATION DU NOUVEAU FORMATAGE ICI
+        const montantPropre = formatArgentPDF(t.montant);
+        
+        return [
+            t.date, 
+            t.libelle.toUpperCase(), 
+            t.provenance.toUpperCase(), 
+            t.mode.toUpperCase(), 
+            (isE ? '+ ' : '- ') + montantPropre
+        ];
+    });
 
-            if(tableData.length === 0) return alert("Aucune donnée pour cette période.");
+    if(tableData.length === 0) return alert("Aucune donnée pour cette période.");
 
-            doc.autoTable({
-                startY: 32,
-                head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
-                columnStyles: { 4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } },
-                foot: [[ 
-                    { 
-                        content: 'SOLDE NET DE LA PÉRIODE', 
-                        colSpan: 4, 
-                        styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
-                    }, 
-                    { 
-                        content: formatArgent(netFinal) + " FCFA", 
-                        styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
-                    } 
-                ]],
-                styles: { fontSize: 8.5 }
-            });
+    doc.autoTable({
+        startY: 32,
+        head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
+        columnStyles: { 
+            4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } 
+        },
+        foot: [[ 
+            { 
+                content: 'SOLDE NET DE LA PÉRIODE', 
+                colSpan: 4, 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
+            }, 
+            { 
+                // UTILISATION DU NOUVEAU FORMATAGE ICI AUSSI
+                content: formatArgentPDF(netFinal) + " FCFA", 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
+            } 
+        ]],
+        styles: { fontSize: 8.5, font: "helvetica" } // Force la police standard
+    });
 
-            doc.save(`Journal_GFC_${dStart}_au_${dEnd}.pdf`);
-        }
+    doc.save(`Journal_GFC_${dStart}_au_${dEnd}.pdf`);
+}
 
         // 5. INITIALISATION
         window.onload = () => {
