@@ -303,9 +303,15 @@
             { 
                 content: 'SOLDE NET DE LA PÉRIODE', 
                 colSpan: 4, 
-                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [230, 230, 230] } 
+                styles: { 
+                    halign: 'right', 
+                    fontStyle: 'bold', 
+                    fontSize: 12, 
+                    fillColor: [245, 245, 245],
+                    textColor: [200, 0, 0] // FORCE LE TEXTE EN ROUGE ICI
+                } 
             },
-            { 
+            {
                 content: formatArgent(soldeNet) + " FCFA", 
                 styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [230, 230, 230], textColor: soldeNet >= 0 ? [0, 100, 0] : [200, 0, 0] } 
             }
