@@ -45,26 +45,34 @@
     </div>
 </header>
 
-    <nav class="bg-white border-b p-3 flex justify-between items-center px-6">
-        <div class="flex gap-3">
-            <button onclick="openModal()" class="bg-[#003366] text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-slate-800 transition-all">
-                <i class="fas fa-plus-circle mr-2"></i> Nouveau Mouvement
-            </button>
-            <button onclick="exportPDF()" class="bg-red-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-red-700 transition-all">
-                <i class="fas fa-file-pdf mr-2"></i> Générer Journal
-            </button>
-        </div>
-        <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded border">
-            <select id="filterMonth" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none border-r">
-                <option value="ALL">Tous les mois</option>
-                <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option>
-                <option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
-                <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option>
-                <option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
-            </select>
-            <select id="filterYear" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none"></select>
-        </div>
-    </nav>
+    <nav class="bg-white border-b p-3 flex flex-wrap justify-between items-center px-6 gap-4">
+    <div class="flex gap-3">
+        <button onclick="openModal()" class="bg-[#003366] text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-slate-800 transition-all flex items-center">
+            <i class="fas fa-plus-circle mr-2"></i> Nouveau Mouvement
+        </button>
+        <button onclick="exportPDF()" class="bg-red-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-red-700 transition-all flex items-center shadow-lg">
+            <i class="fas fa-file-pdf mr-2"></i> Générer Journal
+        </button>
+    </div>
+
+    <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-500 uppercase px-2">Période du Journal :</span>
+        <input type="date" id="pdf_start" class="bg-white border p-1 text-xs rounded outline-none">
+        <span class="text-xs font-bold">au</span>
+        <input type="date" id="pdf_end" class="bg-white border p-1 text-xs rounded outline-none">
+    </div>
+
+    <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded border shadow-inner">
+        <select id="filterMonth" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none border-r">
+            <option value="ALL">Tous les mois</option>
+            <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option>
+            <option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
+            <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option>
+            <option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
+        </select>
+        <select id="filterYear" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none"></select>
+    </div>
+</nav>
 
     <main class="flex-1 overflow-auto p-6 bg-slate-100">
         <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-slate-200">
@@ -247,10 +255,17 @@
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
-    const m = document.getElementById('filterMonth').value;
-    const y = document.getElementById('filterYear').value;
-    const moisLabel = document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text.toUpperCase();
-    const periodeLabel = m === 'ALL' ? `ANNÉE ${y}` : `${moisLabel} ${y}`;
+    // Récupération des dates limites
+    const dateDebut = document.getElementById('pdf_start').value;
+    const dateFin = document.getElementById('pdf_end').value;
+
+    if (!dateDebut || !dateFin) {
+        return alert("Veuillez choisir une date de DEBUT et de FIN pour générer le journal.");
+    }
+
+    // Formatage des dates pour l'en-tête (ex: 01/01/2026)
+    const d1 = new Date(dateDebut).toLocaleDateString('fr-FR');
+    const d2 = new Date(dateFin).toLocaleDateString('fr-FR');
 
     // --- EN-TÊTE ---
     doc.setFont("helvetica", "bold");
@@ -260,20 +275,16 @@
     
     doc.setFontSize(11);
     doc.setTextColor(100, 100, 100);
-    doc.text(`JOURNAL DE TRESORERIE : ${periodeLabel}`, 105, 22, { align: "center" });
+    doc.text(`JOURNAL DE TRESORERIE DU ${d1} AU ${d2}`, 105, 22, { align: "center" });
     doc.line(20, 25, 190, 25);
 
-    // --- CALCULS ET NETTOYAGE DES MONTANTS ---
+    // --- FILTRAGE ET CALCULS ---
     let soldeNet = 0;
-    
-    // Fonction interne pour formater proprement sans caractères bizarres
-    const formatArgent = (num) => {
-        return new Intl.NumberFormat('fr-FR').format(num).replace(/\s/g, ' ');
-    };
+    const formatArgent = (num) => new Intl.NumberFormat('fr-FR').format(num).replace(/\u00a0/g, ' ');
 
     const rows = transactions.filter(t => {
-        const d = new Date(t.date);
-        return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
+        const dateT = t.date; // Format YYYY-MM-DD
+        return dateT >= dateDebut && dateT <= dateFin;
     }).sort((a, b) => new Date(a.date) - new Date(b.date))
     .map(t => {
         const isE = t.type === 'ENTREE';
@@ -287,6 +298,8 @@
         ];
     });
 
+    if (rows.length === 0) return alert("Aucune donnée trouvée pour cette période !");
+
     // --- TABLEAU ---
     doc.autoTable({
         startY: 32,
@@ -296,35 +309,29 @@
         headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
         columnStyles: {
             0: { cellWidth: 25 },
-            1: { cellWidth: 'auto' },
-            4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } // Colonne large pour éviter les coupures
+            4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 }
         },
         foot: [[
             { 
                 content: 'SOLDE NET DE LA PÉRIODE', 
                 colSpan: 4, 
-                styles: { 
-                    halign: 'right', 
-                    fontStyle: 'bold', 
-                    fontSize: 12, 
-                    fillColor: [245, 245, 245],
-                    textColor: [200, 0, 0] // FORCE LE TEXTE EN ROUGE ICI
-                } 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
             },
-            {
+            { 
                 content: formatArgent(soldeNet) + " FCFA", 
-                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [230, 230, 230], textColor: soldeNet >= 0 ? [0, 100, 0] : [200, 0, 0] } 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
             }
         ]],
         styles: { fontSize: 8.5, overflow: 'linebreak' }
     });
 
-    doc.save(`Journal_GFC_${periodeLabel}.pdf`);
+    doc.save(`Journal_GFC_${dateDebut}_au_${dateFin}.pdf`);
 }
-        // 3. INITIALISATION (ORDRE CRITIQUE)
-        window.onload = () => {
-            setupYears(); // On affiche d'abord les années !
-            document.getElementById('f_date').valueAsDate = new Date();
+        // Dans window.onload, ajoutez ces lignes :
+const today = new Date();
+const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+document.getElementById('pdf_start').valueAsDate = firstDay; // Par défaut le 1er du mois
+document.getElementById('pdf_end').valueAsDate = today;     // Par défaut aujourd'hui
             
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
