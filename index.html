@@ -263,11 +263,12 @@
     doc.text(`JOURNAL DE TRESORERIE : ${periodeLabel}`, 105, 22, { align: "center" });
     doc.line(20, 25, 190, 25);
 
-    // --- NETTOYAGE STRICT DES MONTANTS ---
+    // --- CALCULS ET NETTOYAGE DES MONTANTS ---
     let soldeNet = 0;
+    
+    // Fonction interne pour formater proprement sans caractères bizarres
     const formatArgent = (num) => {
-        // Utilise un formatage propre sans caractères spéciaux invisibles
-        return new Intl.NumberFormat('fr-FR').format(num).replace(/\u00a0/g, ' ');
+        return new Intl.NumberFormat('fr-FR').format(num).replace(/\s/g, ' ');
     };
 
     const rows = transactions.filter(t => {
@@ -296,29 +297,17 @@
         columnStyles: {
             0: { cellWidth: 25 },
             1: { cellWidth: 'auto' },
-            4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 }
+            4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } // Colonne large pour éviter les coupures
         },
         foot: [[
             { 
                 content: 'SOLDE NET DE LA PÉRIODE', 
                 colSpan: 4, 
-                styles: { 
-                    halign: 'right', 
-                    fontStyle: 'bold', 
-                    fontSize: 12, 
-                    fillColor: [245, 245, 245],
-                    textColor: [200, 0, 0] // FORCE LE TEXTE EN ROUGE ICI
-                } 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [230, 230, 230] } 
             },
             { 
                 content: formatArgent(soldeNet) + " FCFA", 
-                styles: { 
-                    halign: 'right', 
-                    fontStyle: 'bold', 
-                    fontSize: 12, 
-                    fillColor: [245, 245, 245],
-                    textColor: [200, 0, 0] // FORCE LE MONTANT EN ROUGE ICI
-                } 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [230, 230, 230], textColor: soldeNet >= 0 ? [0, 100, 0] : [200, 0, 0] } 
             }
         ]],
         styles: { fontSize: 8.5, overflow: 'linebreak' }
