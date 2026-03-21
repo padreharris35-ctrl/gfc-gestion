@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ComptaGFC | ECF Supabase PRO</title>
+    <title>ComptaGFC | Gbelebaban Football Club</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -23,29 +23,30 @@
 
     <header class="bg-[#003366] text-white p-4 flex justify-between items-center shadow-lg border-b-4 border-emerald-500">
         <div class="flex items-center gap-4">
-            <div class="bg-white p-2 rounded-lg"><i class="fas fa-chart-line text-[#003366] text-xl"></i></div>
+            <div class="bg-white p-2 rounded-lg"><i class="fas fa-volleyball-ball text-[#003366] text-xl"></i></div>
             <div>
-                <h1 class="text-xl font-bold italic text-white">Compta<span class="text-emerald-400">GFC</span></h1>
-                <p class="text-[10px] uppercase tracking-widest text-blue-200">Entreprise Cissé et Frères</p>
+                <h1 class="text-xl font-bold italic">Compta<span class="text-emerald-400">GFC</span></h1>
+                <p class="text-[10px] uppercase tracking-widest text-blue-200 font-bold">Gbelebaban Football Club</p>
             </div>
         </div>
         <div class="text-right">
             <div id="statSolde" class="text-2xl font-mono font-bold text-emerald-400">0 FCFA</div>
-            <div class="text-[10px] text-blue-200 uppercase">Solde Réel en Caisse</div>
+            <div class="text-[10px] text-blue-200 uppercase font-bold">Solde en Caisse</div>
         </div>
     </header>
 
     <nav class="bg-white border-b p-3 flex justify-between items-center px-6">
         <div class="flex gap-3">
-            <button onclick="openModal()" class="bg-[#003366] text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-slate-800 transition-all">
-                <i class="fas fa-plus-circle mr-1"></i> Nouveau Mouvement
+            <button onclick="openModal()" class="bg-[#003366] text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-slate-800 transition-all flex items-center">
+                <i class="fas fa-plus-circle mr-2"></i> Nouveau Mouvement
             </button>
-            <button onclick="exportPDF()" class="bg-red-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-red-700 transition-all">
-                <i class="fas fa-file-pdf mr-1"></i> Générer Journal
+            <button onclick="exportPDF()" class="bg-red-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-red-700 transition-all flex items-center">
+                <i class="fas fa-file-pdf mr-2"></i> Générer Journal
             </button>
             <div class="status-badge sync-active"><i class="fas fa-check-circle"></i> Supabase Connecté</div>
         </div>
-        <div class="flex items-center gap-2 bg-slate-50 p-1 rounded border">
+        <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded border shadow-inner">
+            <i class="fas fa-calendar-alt text-slate-400 px-2"></i>
             <select id="filterMonth" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none border-r">
                 <option value="ALL">Tous les mois</option>
                 <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option>
@@ -64,8 +65,8 @@
                     <tr>
                         <th class="w-12 text-center">N°</th>
                         <th class="w-28">Date</th>
-                        <th>Désignation</th>
-                        <th>Tiers</th>
+                        <th>Désignation de l'opération</th>
+                        <th>Tiers / Client</th>
                         <th class="w-32">Mode</th>
                         <th class="text-right w-44">Montant (FCFA)</th>
                         <th class="w-16 text-center">Actions</th>
@@ -75,7 +76,7 @@
             </table>
             <div id="emptyState" class="hidden p-20 text-center text-slate-400">
                 <i class="fas fa-folder-open text-5xl mb-4 opacity-20"></i>
-                <p>Aucune donnée pour cette période.</p>
+                <p>Aucune transaction enregistrée pour cette période.</p>
             </div>
         </div>
     </main>
@@ -83,31 +84,31 @@
     <div id="modalEntry" class="fixed inset-0 bg-slate-900/80 z-[100] hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden">
             <div class="bg-[#003366] text-white p-5 flex justify-between">
-                <h3 class="font-bold uppercase text-sm">Saisie Comptable</h3>
+                <h3 class="font-bold uppercase text-sm">Saisie Comptable GFC</h3>
                 <button onclick="closeModal()" class="text-white/50 hover:text-white text-xl">&times;</button>
             </div>
             <div class="p-8 grid grid-cols-2 gap-5">
                 <div class="col-span-2">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Désignation</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Désignation (Libellé)</label>
                     <input type="text" id="f_lib" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none focus:border-blue-500">
                 </div>
                 <div class="col-span-2">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Tiers (Client/Fournisseur)</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Tiers (Client / Destinataire)</label>
                     <input type="text" id="f_prov" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Type</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Type de Flux</label>
                     <select id="f_type" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-blue-900 outline-none">
                         <option value="ENTREE">RECETTE (+)</option>
                         <option value="SORTIE">DÉPENSE (-)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Montant (FCFA)</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Montant Net (FCFA)</label>
                     <input type="number" id="f_mt" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-emerald-600 outline-none">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Mode</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Mode de Paiement</label>
                     <select id="f_mode" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
                         <option>Espèce</option>
                         <option>Virement</option>
@@ -116,10 +117,10 @@
                     </select>
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Date</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Date Effet</label>
                     <input type="date" id="f_date" required class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
                 </div>
-                <button onclick="saveToSupabase()" class="col-span-2 bg-emerald-600 text-white p-4 font-bold uppercase text-xs mt-4 rounded-xl shadow-lg hover:bg-emerald-700">
+                <button onclick="saveToSupabase()" class="col-span-2 bg-emerald-600 text-white p-4 font-bold uppercase text-xs mt-4 rounded-xl shadow-lg hover:bg-emerald-700 transition-all">
                     Enregistrer l'opération
                 </button>
             </div>
@@ -127,15 +128,14 @@
     </div>
 
     <script>
-        // --- 1. CONFIGURATION (Remplissez vos clés ici entre les guillemets) ---
-        const SUPABASE_URL = 'https://hovabdbreaqvtamfacaj.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_d1QmjaWGesiNT-V1WlddoQ_gk9C0r22';
+        // --- 1. CONFIGURATION (REMPLISSEZ VOS CLÉS ICI) ---
+        const SUPABASE_URL = 'VOTRE_URL_ICI'; 
+        const SUPABASE_KEY = 'VOTRE_CLE_ANON_ICI';
 
-        // Initialisation sécurisée
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let transactions = [];
 
-        // --- 2. FONCTIONS DE BASE (Priorité pour l'interface) ---
+        // --- 2. FONCTIONS DE BASE ---
         function openModal() { document.getElementById('modalEntry').classList.remove('hidden'); }
         function closeModal() { document.getElementById('modalEntry').classList.add('hidden'); }
 
@@ -144,7 +144,8 @@
             if(!s) return;
             const curY = new Date().getFullYear();
             s.innerHTML = ''; 
-            for(let y = curY - 10; y <= curY + 25; y++){ 
+            // Affiche 5 ans en arrière et 2 ans dans le futur
+            for(let y = curY - 5; y <= curY + 2; y++){ 
                 let o = document.createElement('option'); 
                 o.value = y; o.text = y; 
                 if(y == curY) o.selected = true; 
@@ -152,7 +153,7 @@
             }
         }
 
-        // --- 3. FONCTIONS SUPABASE ---
+        // --- 3. LOGIQUE SUPABASE ---
         async function fetchSupabase() {
             try {
                 const { data, error } = await supabaseClient
@@ -164,71 +165,46 @@
                 transactions = data;
                 render();
             } catch (e) {
-                console.error("Erreur connexion Supabase:", e.message);
-                alert("Erreur de connexion. Vérifiez vos clés API.");
+                console.error("Erreur de récupération:", e.message);
             }
         }
 
         async function saveToSupabase() {
-    const lib = document.getElementById('f_lib').value;
-    const mt = parseFloat(document.getElementById('f_mt').value);
-    const dt = document.getElementById('f_date').value;
-    const type = document.getElementById('f_type').value;
+            const lib = document.getElementById('f_lib').value;
+            const mt = parseFloat(document.getElementById('f_mt').value);
+            const dt = document.getElementById('f_date').value;
+            const type = document.getElementById('f_type').value;
 
-    if(!lib || isNaN(mt) || !dt) return alert("Veuillez remplir les champs obligatoires !");
+            if(!lib || isNaN(mt) || !dt) return alert("Champs Libellé, Montant et Date obligatoires !");
 
-    // --- AJOUT DE LA VALIDATION ---
-    const confirmation = confirm(
-        `CONFIRMATION D'ENREGISTREMENT\n\n` +
-        `Opération : ${lib.toUpperCase()}\n` +
-        `Type : ${type}\n` +
-        `Montant : ${mt.toLocaleString('fr-FR')} FCFA\n\n` +
-        `Voulez-vous valider cette opération ?`
-    );
+            // VALIDATION AVANT ENREGISTREMENT
+            const confirmation = confirm(`VALIDER L'ENREGISTREMENT ?\n\n${type} : ${lib}\nMontant : ${mt.toLocaleString('fr-FR')} FCFA`);
+            if (!confirmation) return;
 
-    if (!confirmation) return; // Annule l'envoi si l'utilisateur clique sur "Annuler"
+            const newTx = {
+                date: dt, libelle: lib, provenance: document.getElementById('f_prov').value || "-",
+                type: type, mode: document.getElementById('f_mode').value, montant: mt
+            };
 
-    const newTx = {
-        date: dt, 
-        libelle: lib, 
-        provenance: document.getElementById('f_prov').value || "-",
-        type: type, 
-        mode: document.getElementById('f_mode').value, 
-        montant: mt
-    };
-
-    const { error } = await supabaseClient.from('transactions').insert([newTx]);
-    if (error) alert("Erreur SQL: " + error.message);
-    else { 
-        closeModal(); 
-        fetchSupabase(); 
-    }
-}
+            const { error } = await supabaseClient.from('transactions').insert([newTx]);
+            if (error) alert("Erreur SQL: " + error.message);
+            else { closeModal(); fetchSupabase(); }
+        }
 
         async function deleteTx(id) {
-    // --- AJOUT DU CODE DE SÉCURITÉ ---
-    const codeAdmin = "2026"; // Vous pouvez changer ce code ici
-    const saisie = prompt("SÉCURITÉ : Veuillez saisir le code administrateur pour supprimer cette ligne :");
+            // VALIDATION PAR CODE (2026)
+            const codeAdmin = "2026"; 
+            const saisie = prompt("SÉCURITÉ : Entrez le code administrateur pour supprimer :");
 
-    if (saisie === null) return; // L'utilisateur a cliqué sur annuler
-
-    if (saisie === codeAdmin) {
-        const { error } = await supabaseClient
-            .from('transactions')
-            .delete()
-                .eq('id', id);
-        
-        if (error) {
-            alert("Erreur lors de la suppression");
-        } else {
-            fetchSupabase();
+            if (saisie === codeAdmin) {
+                const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
+                if (!error) fetchSupabase();
+            } else if (saisie !== null) {
+                alert("CODE INCORRECT !");
+            }
         }
-    } else {
-        alert("CODE INCORRECT. Suppression annulée.");
-    }
-}
 
-        // --- 4. AFFICHAGE ---
+        // --- 4. AFFICHAGE ET PDF ---
         function render() {
             const m = document.getElementById('filterMonth').value;
             const y = document.getElementById('filterYear').value;
@@ -252,99 +228,67 @@
                     body.innerHTML += `
                         <tr>
                             <td class="text-center opacity-30 text-[10px]">${i+1}</td>
-                            <td>${t.date}</td>
-                            <td class="font-bold uppercase">${t.libelle}</td>
+                            <td class="font-medium">${t.date}</td>
+                            <td class="font-bold uppercase text-slate-700">${t.libelle}</td>
                             <td class="uppercase text-xs text-slate-500">${t.provenance}</td>
-                            <td class="text-[10px] italic">${t.mode}</td>
-                            <td class="text-right font-bold ${isE?'text-emerald-600':'text-red-600'}">
+                            <td class="text-[10px] font-bold italic">${t.mode}</td>
+                            <td class="text-right font-mono font-bold ${isE?'text-emerald-600':'text-red-600'}">
                                 ${isE?'+':'-'} ${t.montant.toLocaleString('fr-FR')}
                             </td>
                             <td class="text-center">
-                                <button onclick="deleteTx(${t.id})"><i class="fas fa-trash text-slate-200 hover:text-red-400"></i></button>
+                                <button onclick="deleteTx(${t.id})" class="text-slate-200 hover:text-red-500 transition-colors"><i class="fas fa-trash-alt"></i></button>
                             </td>
                         </tr>`;
                 });
             }
-            document.getElementById('statSolde').innerText = total.toLocaleString('fr-FR') + " FCFA";
+            const stat = document.getElementById('statSolde');
+            stat.innerText = total.toLocaleString('fr-FR') + " FCFA";
+            stat.className = `text-2xl font-mono font-bold ${total >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
         }
 
-        ffunction exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4'); // Format A4 portrait
-    
-    const m = document.getElementById('filterMonth').value;
-    const y = document.getElementById('filterYear').value;
-    const moisLabel = document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text.toUpperCase();
-    const titrePeriode = m === 'ALL' ? `ANNÉE ${y}` : `${moisLabel} ${y}`;
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            const mois = document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text.toUpperCase();
+            const periodeTitre = m === 'ALL' ? `ANNÉE ${y}` : `${mois} ${y}`;
 
-    // --- EN-TÊTE ULTRA-VISIBLE ---
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(0, 51, 102); 
-    doc.text("GBELEBAN FOOTBALL CLUB (GFC)", 105, 15, { align: "center" });
-    
-    doc.setFontSize(12);
-    doc.setTextColor(60, 60, 60);
-    doc.text(`JOURNAL DE TRESORERIE : ${titrePeriode}`, 105, 22, { align: "center" });
-    
-    doc.setDrawColor(0, 51, 102);
-    doc.setLineWidth(0.8);
-    doc.line(20, 25, 190, 25);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(18);
+            doc.setTextColor(0, 51, 102);
+            doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
+            
+            doc.setFontSize(11);
+            doc.setTextColor(80, 80, 80);
+            doc.text(`JOURNAL DE TRESORERIE : ${periodeTitre}`, 105, 22, { align: "center" });
+            doc.line(20, 25, 190, 25);
 
-    // --- PRÉPARATION DES DONNÉES ---
-    let cumulSolde = 0;
-    const filtered = transactions.filter(t => {
-        const d = new Date(t.date);
-        return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+            let soldeTotal = 0;
+            const dataTable = transactions.filter(t => {
+                const d = new Date(t.date);
+                return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
+            }).sort((a,b) => new Date(a.date) - new Date(b.date))
+            .map(t => {
+                const isE = t.type === 'ENTREE';
+                soldeTotal += isE ? t.montant : -t.montant;
+                return [t.date, t.libelle.toUpperCase(), t.provenance.toUpperCase(), t.mode.toUpperCase(), (isE?'+':'-')+" "+t.montant.toLocaleString('fr-FR')];
+            });
 
-    const rows = filtered.map(t => {
-        const isE = t.type === 'ENTREE';
-        cumulSolde += isE ? t.montant : -t.montant;
-        return [
-            t.date, 
-            t.libelle.toUpperCase(), 
-            t.provenance.toUpperCase(), 
-            t.mode.toUpperCase(), 
-            (isE ? '+' : '-') + " " + t.montant.toLocaleString('fr-FR')
-        ];
-    });
+            doc.autoTable({
+                startY: 30,
+                head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
+                body: dataTable,
+                theme: 'striped',
+                headStyles: { fillColor: [0, 51, 102], fontSize: 9, halign: 'center' },
+                columnStyles: { 4: { halign: 'right', fontStyle: 'bold', cellWidth: 35 } },
+                foot: [[ { content: 'SOLDE FINAL DE LA PERIODE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, 
+                        { content: soldeTotal.toLocaleString('fr-FR') + " FCFA", styles: { halign: 'right', fontStyle: 'bold', fillColor: [230, 255, 230] } } ]],
+                styles: { fontSize: 8, overflow: 'linebreak' }
+            });
+            doc.save(`GFC_Journal_${periodeTitre.replace(' ','_')}.pdf`);
+        }
 
-    // --- TABLEAU CONFIGURÉ POUR LA VISIBILITÉ ---
-    doc.autoTable({
-        startY: 30,
-        head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
-        body: rows,
-        theme: 'striped', // Lignes alternées pour la lecture
-        headStyles: { 
-            fillColor: [0, 51, 102], 
-            textColor: [255, 255, 255], 
-            fontSize: 10, 
-            halign: 'center',
-            cellPadding: 3
-        },
-        bodyStyles: { 
-            fontSize: 9, 
-            textColor: [40, 40, 40],
-            cellPadding: 3
-        },
-        columnStyles: {
-            0: { cellWidth: 25 }, // Date
-            1: { cellWidth: 'auto' }, // Désignation (prend le reste)
-            2: { cellWidth: 35 }, // Tiers
-            3: { cellWidth: 25 }, // Mode
-            4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' } // Montant bien large à droite
-        },
-        foot: [[
-            { content: 'SOLDE FINAL DE LA PÉRIODE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 11 } },
-            { content: cumulSolde.toLocaleString('fr-FR') + " FCFA", styles: { halign: 'right', fontStyle: 'bold', fontSize: 11, fillColor: [220, 255, 220] } }
-        ]],
-        margin: { top: 30 },
-        styles: { overflow: 'linebreak' } // Retour à la ligne si le texte est trop long
-    });
-
-    doc.save(`GFC_Compta_${titrePeriode.replace(' ', '_')}.pdf`);
-}
         // --- 5. INITIALISATION ---
         window.onload = () => {
             setupYears();
