@@ -56,8 +56,8 @@
             </button>
         </div>
 
-        <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200 shadow-inner">
-            <span class="text-[9px] font-bold text-slate-500 uppercase px-1">Période du Journal :</span>
+        <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+            <span class="text-[9px] font-bold text-slate-500 uppercase px-1">Période Journal :</span>
             <input type="date" id="pdf_start" class="bg-white border p-1 text-xs rounded outline-none border-blue-200">
             <span class="text-[9px] font-bold">AU</span>
             <input type="date" id="pdf_end" class="bg-white border p-1 text-xs rounded outline-none border-blue-200">
@@ -102,27 +102,27 @@
             </div>
             <div class="p-8 grid grid-cols-2 gap-5">
                 <div class="col-span-2">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Désignation (Libellé)</label>
-                    <input type="text" id="f_lib" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none focus:border-blue-500">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Désignation</label>
+                    <input type="text" id="f_lib" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
                 </div>
                 <div class="col-span-2">
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Tiers (Client / Destinataire)</label>
-                    <input type="text" id="f_prov" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none focus:border-blue-500">
+                    <input type="text" id="f_prov" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Type</label>
-                    <select id="f_type" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-blue-900">
+                    <select id="f_type" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold">
                         <option value="ENTREE">RECETTE (+)</option>
                         <option value="SORTIE">DÉPENSE (-)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Montant Net (FCFA)</label>
-                    <input type="number" id="f_mt" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-emerald-600 outline-none">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Montant (FCFA)</label>
+                    <input type="number" id="f_mt" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-emerald-600">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Mode de Paiement</label>
-                    <select id="f_mode" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Mode</label>
+                    <select id="f_mode" class="w-full border-b-2 border-slate-200 p-2 text-sm">
                         <option>Espèce</option>
                         <option>Virement</option>
                         <option>Mobile Money</option>
@@ -130,10 +130,10 @@
                     </select>
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Date Effet</label>
-                    <input type="date" id="f_date" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Date</label>
+                    <input type="date" id="f_date" class="w-full border-b-2 border-slate-200 p-2 text-sm">
                 </div>
-                <button onclick="saveToSupabase()" class="col-span-2 bg-emerald-600 text-white p-4 font-bold uppercase text-xs mt-4 rounded-xl shadow-lg hover:bg-emerald-700 transition-all">
+                <button onclick="saveToSupabase()" class="col-span-2 bg-emerald-600 text-white p-4 font-bold uppercase text-xs mt-4 rounded-xl shadow-lg hover:bg-emerald-700">
                     Enregistrer l'opération
                 </button>
             </div>
@@ -141,9 +141,9 @@
     </div>
 
     <script>
-        // 1. CONFIGURATION
-        const SUPABASE_URL = 'https://hovabdbreaqvtamfacaj.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_d1QmjaWGesiNT-V1WlddoQ_gk9C0r22';
+        // 1. CONFIGURATION (METTEZ VOS CLÉS ICI)
+        const SUPABASE_URL = 'VOTRE_URL_ICI'; 
+        const SUPABASE_KEY = 'VOTRE_CLE_ICI';
 
         let supabaseClient;
         let transactions = [];
@@ -157,7 +157,7 @@
             if(!s) return;
             const curY = new Date().getFullYear();
             s.innerHTML = ''; 
-            for(let y = curY - 5; y <= curY + 25; y++){ 
+            for(let y = curY - 5; y <= curY + 2; y++){ 
                 let o = document.createElement('option'); 
                 o.value = y; o.text = y; 
                 if(y === curY) o.selected = true; 
@@ -165,49 +165,30 @@
             }
         }
 
-        // Nettoyage strict des montants pour éviter les bugs d'affichage
-       const formatArgentPDF = (num) => {
-    // On formate le nombre, puis on force le remplacement de TOUS les types d'espaces
-    // par un espace standard (touche espace du clavier) que le PDF accepte.
-    return new Intl.NumberFormat('fr-FR').format(num)
-               .replace(/\s/g, ' ')      // Remplace les espaces normaux
-               .replace(/\u00a0/g, ' ')  // Remplace les espaces insécables
-               .replace(/\u202f/g, ' '); // Remplace les espaces fins (utilisés en FR)
-};
+        const formatArgent = (num) => {
+            return new Intl.NumberFormat('fr-FR').format(num).replace(/\u00a0/g, ' ').replace(/\s/g, ' ');
+        };
 
         async function fetchSupabase() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('transactions')
-            .select('*')
-            .order('date', { ascending: false });
-
-        if (error) {
-            console.error("Erreur détaillée de Supabase :", error.message);
-            alert("Erreur Supabase : " + error.message);
-        } else {
-            console.log("Données récupérées avec succès :", data.length, "lignes");
-            transactions = data; 
-            render(); 
+            try {
+                const { data, error } = await supabaseClient.from('transactions').select('*').order('date', { ascending: false });
+                if (error) throw error;
+                transactions = data; 
+                render();
+            } catch (e) {
+                console.error("Erreur Fetch:", e.message);
+            }
         }
-    } catch (e) { 
-        console.error("Erreur de connexion réseau :", e);
-    }
-}
 
         window.saveToSupabase = async function() {
             const lib = document.getElementById('f_lib').value;
             const mt = parseFloat(document.getElementById('f_mt').value);
             const dt = document.getElementById('f_date').value;
-            const type = document.getElementById('f_type').value;
-
             if(!lib || isNaN(mt) || !dt) return alert("Remplissez Libellé, Montant et Date !");
             
-            if(!confirm(`VALIDER L'ENREGISTREMENT ?\n\n${type} : ${lib}\nMontant : ${formatArgent(mt)} FCFA`)) return;
-
             const newTx = {
                 date: dt, libelle: lib, provenance: document.getElementById('f_prov').value || "-",
-                type: type, mode: document.getElementById('f_mode').value, montant: mt
+                type: document.getElementById('f_type').value, mode: document.getElementById('f_mode').value, montant: mt
             };
 
             const { error } = await supabaseClient.from('transactions').insert([newTx]);
@@ -216,32 +197,25 @@
         }
 
         window.deleteTx = async function(id) {
-            const codeAdmin = "2026"; 
-            const saisie = prompt("SÉCURITÉ : Entrez le code administrateur pour supprimer :");
-            if (saisie === codeAdmin) {
-                const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
-                if (!error) fetchSupabase();
-            } else if (saisie !== null) {
-                alert("CODE INCORRECT !");
+            if (prompt("CODE SÉCURITÉ :") === "2026") {
+                await supabaseClient.from('transactions').delete().eq('id', id);
+                fetchSupabase();
             }
         }
 
-        // 3. RENDU INTERFACE
         window.render = function() {
             const m = document.getElementById('filterMonth').value;
             const y = document.getElementById('filterYear').value;
             const body = document.getElementById('excelBody');
             body.innerHTML = '';
-            
-            let entrees = 0, sorties = 0;
+            let ent = 0, sor = 0;
 
             transactions.filter(t => {
                 const d = new Date(t.date);
                 return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
             }).forEach((t, i) => {
                 const isE = t.type === 'ENTREE';
-                if(isE) entrees += t.montant; else sorties += t.montant;
-
+                if(isE) ent += t.montant; else sor += t.montant;
                 body.innerHTML += `<tr>
                     <td class="text-center opacity-50">${i+1}</td>
                     <td>${t.date}</td>
@@ -249,7 +223,7 @@
                     <td class="text-xs uppercase text-slate-500">${t.provenance}</td>
                     <td class="text-[10px] italic font-bold">${t.mode}</td>
                     <td class="text-right font-bold ${isE?'text-emerald-600':'text-red-600'}">
-                        ${isE?'+':'-'} ${formatArgent(t.montant)}
+                        ${isE?'+':'-'} ${formatArgent(t.montant)} FCFA
                     </td>
                     <td class="text-center">
                         <button onclick="deleteTx(${t.id})" class="text-slate-200 hover:text-red-500"><i class="fas fa-trash-alt"></i></button>
@@ -257,104 +231,75 @@
                 </tr>`;
             });
 
-            document.getElementById('statEntrees').innerText = formatArgent(entrees) + " FCFA";
-            document.getElementById('statSorties').innerText = formatArgent(sorties) + " FCFA";
-            const solde = entrees - sorties;
-            const soldeEl = document.getElementById('statSolde');
-            soldeEl.innerText = formatArgent(solde) + " FCFA";
-            soldeEl.className = `text-xl font-mono font-bold ${solde >= 0 ? 'text-white' : 'text-red-400'}`;
+            document.getElementById('statEntrees').innerText = formatArgent(ent) + " FCFA";
+            document.getElementById('statSorties').innerText = formatArgent(sor) + " FCFA";
+            const solde = ent - sor;
+            const sEl = document.getElementById('statSolde');
+            sEl.innerText = formatArgent(solde) + " FCFA";
+            sEl.className = `text-xl font-mono font-bold ${solde >= 0 ? 'text-white' : 'text-red-400'}`;
         }
 
-        // 4. GENERATION PDF AVEC PERIODE PERSONNALISÉE
-       window.exportPDF = function() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-    
-    const dStart = document.getElementById('pdf_start').value;
-    const dEnd = document.getElementById('pdf_end').value;
+        window.exportPDF = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const dS = document.getElementById('pdf_start').value;
+            const dE = document.getElementById('pdf_end').value;
+            if(!dS || !dE) return alert("Sélectionnez les dates.");
 
-    if (!dStart || !dEnd) return alert("Veuillez choisir une date de DEBUT et de FIN.");
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16); doc.setTextColor(0, 51, 102);
+            doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
+            doc.setFontSize(11); doc.setTextColor(100, 100, 100);
+            doc.text(`JOURNAL DE TRESORERIE DU ${new Date(dS).toLocaleDateString()} AU ${new Date(dE).toLocaleDateString()}`, 105, 22, { align: "center" });
+            doc.line(20, 25, 190, 25);
 
-    const labelD1 = new Date(dStart).toLocaleDateString('fr-FR');
-    const labelD2 = new Date(dEnd).toLocaleDateString('fr-FR');
+            let net = 0;
+            const data = transactions.filter(t => t.date >= dS && t.date <= dE).sort((a,b) => new Date(a.date) - new Date(b.date))
+            .map(t => {
+                const isE = t.type === 'ENTREE'; net += isE ? t.montant : -t.montant;
+                return [t.date, t.libelle.toUpperCase(), t.provenance.toUpperCase(), t.mode.toUpperCase(), (isE?'+ ':'- ')+formatArgent(t.montant)];
+            });
 
-    // En-tête
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(0, 51, 102);
-    doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
-    
-    doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`JOURNAL DE TRESORERIE DU ${labelD1} AU ${labelD2}`, 105, 22, { align: "center" });
-    doc.line(20, 25, 190, 25);
+            doc.autoTable({
+                startY: 32,
+                head: [['DATE', 'DESIGNATION', 'TIERS', 'MODE', 'MONTANT (FCFA)']],
+                body: data,
+                theme: 'striped',
+                headStyles: { fillColor: [0, 51, 102], halign: 'center' },
+                columnStyles: { 4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } },
+                foot: [[
+                    { content: 'SOLDE NET DE LA PÉRIODE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, textColor: [200, 0, 0] } },
+                    { content: formatArgent(net) + " FCFA", styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, textColor: [200, 0, 0] } }
+                ]],
+                styles: { fontSize: 8.5 }
+            });
+            doc.save(`Journal_GFC_Export.pdf`);
+        }
 
-    let netFinal = 0;
-    const tableData = transactions.filter(t => {
-        return t.date >= dStart && t.date <= dEnd;
-    }).sort((a,b) => new Date(a.date) - new Date(b.date))
-    .map(t => {
-        const isE = t.type === 'ENTREE';
-        netFinal += isE ? t.montant : -t.montant;
-        
-        // UTILISATION DU NOUVEAU FORMATAGE ICI
-        const montantPropre = formatArgentPDF(t.montant);
-        
-        return [
-            t.date, 
-            t.libelle.toUpperCase(), 
-            t.provenance.toUpperCase(), 
-            t.mode.toUpperCase(), 
-            (isE ? '+ ' : '- ') + montantPropre
-        ];
-    });
-
-    if(tableData.length === 0) return alert("Aucune donnée pour cette période.");
-
-    doc.autoTable({
-        startY: 32,
-        head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
-        columnStyles: { 
-            4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } 
-        },
-        foot: [[ 
-            { 
-                content: 'SOLDE NET DE LA PÉRIODE', 
-                colSpan: 4, 
-                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
-            }, 
-            { 
-                // UTILISATION DU NOUVEAU FORMATAGE ICI AUSSI
-                content: formatArgentPDF(netFinal) + " FCFA", 
-                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
-            } 
-        ]],
-        styles: { fontSize: 8.5, font: "helvetica" } // Force la police standard
-    });
-
-    doc.save(`Journal_GFC_${dStart}_au_${dEnd}.pdf`);
-}
-
-        // 5. INITIALISATION
-        window.onload = () => {
-            setupYears(); 
+        // 3. INITIALISATION AVEC DIAGNOSTIC
+        window.onload = async () => {
+            setupYears();
             const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            
-            // Dates PDF par défaut
-            document.getElementById('pdf_start').valueAsDate = firstDay;
+            document.getElementById('pdf_start').valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
             document.getElementById('pdf_end').valueAsDate = today;
-            
-            // Date formulaire par défaut
             document.getElementById('f_date').valueAsDate = today;
 
             try {
+                if(SUPABASE_URL === 'VOTRE_URL_ICI') {
+                    console.log("Attention: Clés non configurées");
+                    return;
+                }
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                
+                // Test de connexion direct
+                const { data, error } = await supabaseClient.from('transactions').select('*').limit(1);
+                if(error) throw error;
+                
+                console.log("Connexion Supabase OK !");
                 fetchSupabase();
-            } catch(e) { console.error("Supabase Init Error"); }
+            } catch (err) {
+                alert("ERREUR CONNEXION : " + err.message + "\n\nVérifiez RLS et Clés API.");
+            }
         };
     </script>
 </body>
