@@ -4,78 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ComptaGFC | Firebase PRO</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <script type="module">
-        // 1. Importation des modules officiels
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-        // 2. Vos clés secrètes (À récupérer dans les paramètres de votre projet Firebase)
-        const firebaseConfig = {
-            apiKey: "AIzaSy...", 
-            authDomain: "comptagfc-c67aa.firebaseapp.com",
-            databaseURL: "https://comptagfc-c67aa-default-rtdb.firebaseio.com",
-            projectId: "comptagfc-c67aa",
-            storageBucket: "comptagfc-c67aa.appspot.com",
-            messagingSenderId: "XXXXXXXX",
-            appId: "1:XXXXXXX:web:XXXXX"
-        };
-
-        // 3. Initialisation
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
-
-        // 4. Connexion automatique (Remplace le ADMIN123 en clair)
-        // Créez cet utilisateur d'abord dans la console Firebase > Authentication
-        signInWithEmailAndPassword(auth, "votre-email@ecf.com", "VotreMotDePasseSecret")
-            .then(() => console.log("Connecté en mode PRO"))
-            .catch(err => console.error("Erreur de connexion :", err));
-
-        // 5. Rendre les fonctions accessibles aux boutons HTML (Obligatoire en mode module)
-        window.saveToFirebase = async function() {
-            const lib = document.getElementById('f_lib').value;
-            const mt = parseFloat(document.getElementById('f_mt').value);
-            if(!lib || !mt) return alert("Champs obligatoires !");
-            
-            const newTx = {
-                date: document.getElementById('f_date').value,
-                libelle: lib,
-                provenance: document.getElementById('f_prov').value || "-",
-                type: document.getElementById('f_type').value,
-                mode: document.getElementById('f_mode').value,
-                montant: mt,
-                timestamp: Date.now()
-            };
-
-            await push(ref(db, 'transactions'), newTx);
-            closeModal('entry');
-        };
-
-        window.deleteTx = async function(idFirebase) {
-            if(confirm("Confirmer la suppression ?")) {
-                await remove(ref(db, `transactions/${idFirebase}`));
-            }
-        };
-
-        // 6. Écoute en temps réel (Synchronisation automatique)
-        onValue(ref(db, 'transactions'), (snapshot) => {
-            const data = snapshot.val();
-            // On met à jour la variable globale transactions utilisée par votre fonction render()
-            window.transactions = data ? Object.keys(data).map(key => ({idFirebase: key, ...data[key]})) : [];
-            render(); 
-        });
-    </script>
-
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f1f5f9; }
-        /* ... votre reste de CSS ... */
+        .excel-table { width: 100%; border-collapse: collapse; background: white; }
+        .excel-table th { background: #003366; color: white; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; position: sticky; top: 0; }
+        .excel-table td { border: 1px solid #e2e8f0; padding: 8px 12px; font-size: 13px; color: #334155; }
+        .excel-table tr:nth-child(even) { background-color: #f8fafc; }
+        .status-cloud { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .sync-ok { background: #dcfce7; color: #166534; }
     </style>
 </head>
 <body class="h-screen flex flex-col">
