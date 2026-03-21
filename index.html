@@ -13,66 +13,67 @@
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f1f5f9; }
         .excel-table { width: 100%; border-collapse: collapse; background: white; }
         .excel-table th { background: #003366; color: white; padding: 12px; font-size: 11px; text-transform: uppercase; text-align: left; }
-        .excel-table td { border: 1px solid #e2e8f0; padding: 10px; font-size: 13px; }
+        .excel-table td { border: 1px solid #e2e8f0; padding: 10px; font-size: 13px; color: #334155; }
+        .excel-table tr:hover { background-color: #f8fafc; }
     </style>
 </head>
 <body class="h-screen flex flex-col">
 
     <header class="bg-[#003366] text-white p-4 shadow-lg border-b-4 border-emerald-500">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-4">
-            <div class="bg-white p-2 rounded-lg"><i class="fas fa-volleyball-ball text-[#003366] text-xl"></i></div>
-            <div>
-                <h1 class="text-xl font-bold italic">Compta<span class="text-emerald-400">GFC</span></h1>
-                <p class="text-[10px] uppercase tracking-widest text-blue-200 font-bold">Gbelebaban Football Club</p>
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-white p-2 rounded-lg"><i class="fas fa-volleyball-ball text-[#003366] text-xl"></i></div>
+                <div>
+                    <h1 class="text-xl font-bold italic">Compta<span class="text-emerald-400">GFC</span></h1>
+                    <p class="text-[10px] uppercase tracking-widest text-blue-200 font-bold">Gbelebaban Football Club</p>
+                </div>
             </div>
-        </div>
 
-        <div class="flex flex-wrap justify-center gap-6 bg-slate-900/40 p-3 rounded-xl border border-white/10">
-            <div class="text-center px-4 border-r border-white/10">
-                <div id="statEntrees" class="text-lg font-mono font-bold text-emerald-400">0 FCFA</div>
-                <div class="text-[9px] uppercase text-emerald-200 opacity-70">Total Entrées</div>
-            </div>
-            <div class="text-center px-4 border-r border-white/10">
-                <div id="statSorties" class="text-lg font-mono font-bold text-red-400">0 FCFA</div>
-                <div class="text-[9px] uppercase text-red-200 opacity-70">Total Dépenses</div>
-            </div>
-            <div class="text-center px-4">
-                <div id="statSolde" class="text-xl font-mono font-bold text-white">0 FCFA</div>
-                <div class="text-[9px] uppercase text-blue-200 opacity-70 font-bold">Solde Global</div>
+            <div class="flex flex-wrap justify-center gap-6 bg-slate-900/40 p-3 rounded-xl border border-white/10">
+                <div class="text-center px-4 border-r border-white/10">
+                    <div id="statEntrees" class="text-lg font-mono font-bold text-emerald-400">0 FCFA</div>
+                    <div class="text-[9px] uppercase text-emerald-200 opacity-70 font-bold">Total Entrées</div>
+                </div>
+                <div class="text-center px-4 border-r border-white/10">
+                    <div id="statSorties" class="text-lg font-mono font-bold text-red-400">0 FCFA</div>
+                    <div class="text-[9px] uppercase text-red-200 opacity-70 font-bold">Total Dépenses</div>
+                </div>
+                <div class="text-center px-4">
+                    <div id="statSolde" class="text-xl font-mono font-bold text-white">0 FCFA</div>
+                    <div class="text-[9px] uppercase text-blue-200 opacity-70 font-bold">Solde Global</div>
+                </div>
             </div>
         </div>
-    </div>
-</header>
+    </header>
 
     <nav class="bg-white border-b p-3 flex flex-wrap justify-between items-center px-6 gap-4">
-    <div class="flex gap-3">
-        <button onclick="openModal()" class="bg-[#003366] text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-slate-800 transition-all flex items-center">
-            <i class="fas fa-plus-circle mr-2"></i> Nouveau Mouvement
-        </button>
-        <button onclick="exportPDF()" class="bg-red-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-red-700 transition-all flex items-center shadow-lg">
-            <i class="fas fa-file-pdf mr-2"></i> Générer Journal
-        </button>
-    </div>
+        <div class="flex gap-3">
+            <button onclick="openModal()" class="bg-[#003366] text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-slate-800 transition-all flex items-center">
+                <i class="fas fa-plus-circle mr-2"></i> Nouveau Mouvement
+            </button>
+            <button onclick="exportPDF()" class="bg-red-600 text-white px-5 py-2.5 rounded text-xs font-bold uppercase hover:bg-red-700 transition-all flex items-center shadow-lg">
+                <i class="fas fa-file-pdf mr-2"></i> Générer Journal
+            </button>
+        </div>
 
-    <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
-        <span class="text-[10px] font-bold text-slate-500 uppercase px-2">Période du Journal :</span>
-        <input type="date" id="pdf_start" class="bg-white border p-1 text-xs rounded outline-none">
-        <span class="text-xs font-bold">au</span>
-        <input type="date" id="pdf_end" class="bg-white border p-1 text-xs rounded outline-none">
-    </div>
+        <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200 shadow-inner">
+            <span class="text-[9px] font-bold text-slate-500 uppercase px-1">Période du Journal :</span>
+            <input type="date" id="pdf_start" class="bg-white border p-1 text-xs rounded outline-none border-blue-200">
+            <span class="text-[9px] font-bold">AU</span>
+            <input type="date" id="pdf_end" class="bg-white border p-1 text-xs rounded outline-none border-blue-200">
+        </div>
 
-    <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded border shadow-inner">
-        <select id="filterMonth" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none border-r">
-            <option value="ALL">Tous les mois</option>
-            <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option>
-            <option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
-            <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option>
-            <option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
-        </select>
-        <select id="filterYear" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none"></select>
-    </div>
-</nav>
+        <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded border">
+            <select id="filterMonth" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none border-r">
+                <option value="ALL">Tous les mois</option>
+                <option value="0">Janvier</option><option value="1">Février</option><option value="2">Mars</option>
+                <option value="3">Avril</option><option value="4">Mai</option><option value="5">Juin</option>
+                <option value="6">Juillet</option><option value="7">Août</option><option value="8">Septembre</option>
+                <option value="9">Octobre</option><option value="10">Novembre</option><option value="11">Décembre</option>
+            </select>
+            <select id="filterYear" onchange="render()" class="bg-transparent p-1 text-xs font-bold outline-none"></select>
+        </div>
+    </nav>
 
     <main class="flex-1 overflow-auto p-6 bg-slate-100">
         <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-slate-200">
@@ -82,7 +83,7 @@
                         <th class="w-12 text-center">N°</th>
                         <th class="w-28">Date</th>
                         <th>Désignation</th>
-                        <th>Tiers</th>
+                        <th>Tiers / Client</th>
                         <th>Mode</th>
                         <th class="text-right">Montant (FCFA)</th>
                         <th class="w-16 text-center">Actions</th>
@@ -93,7 +94,7 @@
         </div>
     </main>
 
-    <div id="modalEntry" class="fixed inset-0 bg-slate-900/80 z-[100] hidden flex items-center justify-center">
+    <div id="modalEntry" class="fixed inset-0 bg-slate-900/80 z-[100] hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white w-full max-w-lg shadow-2xl rounded-2xl overflow-hidden">
             <div class="bg-[#003366] text-white p-5 flex justify-between">
                 <h3 class="font-bold uppercase text-sm">Saisie Comptable GFC</h3>
@@ -101,27 +102,27 @@
             </div>
             <div class="p-8 grid grid-cols-2 gap-5">
                 <div class="col-span-2">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Désignation</label>
-                    <input type="text" id="f_lib" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Désignation (Libellé)</label>
+                    <input type="text" id="f_lib" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none focus:border-blue-500">
                 </div>
                 <div class="col-span-2">
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Tiers (Client / Destinataire)</label>
-                    <input type="text" id="f_prov" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
+                    <input type="text" id="f_prov" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none focus:border-blue-500">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Type</label>
-                    <select id="f_type" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold">
+                    <select id="f_type" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-blue-900">
                         <option value="ENTREE">RECETTE (+)</option>
                         <option value="SORTIE">DÉPENSE (-)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Montant (FCFA)</label>
-                    <input type="number" id="f_mt" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-emerald-600">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Montant Net (FCFA)</label>
+                    <input type="number" id="f_mt" class="w-full border-b-2 border-slate-200 p-2 text-sm font-bold text-emerald-600 outline-none">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Mode</label>
-                    <select id="f_mode" class="w-full border-b-2 border-slate-200 p-2 text-sm">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Mode de Paiement</label>
+                    <select id="f_mode" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
                         <option>Espèce</option>
                         <option>Virement</option>
                         <option>Mobile Money</option>
@@ -129,11 +130,11 @@
                     </select>
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Date</label>
-                    <input type="date" id="f_date" class="w-full border-b-2 border-slate-200 p-2 text-sm">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Date Effet</label>
+                    <input type="date" id="f_date" class="w-full border-b-2 border-slate-200 p-2 text-sm outline-none">
                 </div>
-                <button onclick="saveToSupabase()" class="col-span-2 bg-emerald-600 text-white p-4 font-bold uppercase text-xs mt-4 rounded-xl">
-                    Enregistrer
+                <button onclick="saveToSupabase()" class="col-span-2 bg-emerald-600 text-white p-4 font-bold uppercase text-xs mt-4 rounded-xl shadow-lg hover:bg-emerald-700 transition-all">
+                    Enregistrer l'opération
                 </button>
             </div>
         </div>
@@ -147,7 +148,7 @@
         let supabaseClient;
         let transactions = [];
 
-        // 2. FONCTIONS DE BASE (Déclarées tout de suite pour éviter les erreurs "is not defined")
+        // 2. FONCTIONS DE BASE
         window.openModal = function() { document.getElementById('modalEntry').classList.remove('hidden'); }
         window.closeModal = function() { document.getElementById('modalEntry').classList.add('hidden'); }
 
@@ -164,181 +165,164 @@
             }
         }
 
+        // Nettoyage strict des montants pour éviter les bugs d'affichage
+        const formatArgent = (num) => {
+            return new Intl.NumberFormat('fr-FR').format(num).replace(/\u00a0/g, ' ');
+        };
+
         async function fetchSupabase() {
             try {
                 const { data, error } = await supabaseClient.from('transactions').select('*').order('date', { ascending: false });
                 if (!error) { transactions = data; render(); }
-            } catch (e) { console.log("Erreur de fetch"); }
+            } catch (e) { console.error("Erreur de fetch"); }
         }
 
         window.saveToSupabase = async function() {
             const lib = document.getElementById('f_lib').value;
             const mt = parseFloat(document.getElementById('f_mt').value);
             const dt = document.getElementById('f_date').value;
-            if(!lib || !mt || !dt) return alert("Remplissez tout !");
+            const type = document.getElementById('f_type').value;
 
-            if(!confirm("Valider l'enregistrement ?")) return;
+            if(!lib || isNaN(mt) || !dt) return alert("Remplissez Libellé, Montant et Date !");
+            
+            if(!confirm(`VALIDER L'ENREGISTREMENT ?\n\n${type} : ${lib}\nMontant : ${formatArgent(mt)} FCFA`)) return;
 
             const newTx = {
                 date: dt, libelle: lib, provenance: document.getElementById('f_prov').value || "-",
-                type: document.getElementById('f_type').value, mode: document.getElementById('f_mode').value, montant: mt
+                type: type, mode: document.getElementById('f_mode').value, montant: mt
             };
 
             const { error } = await supabaseClient.from('transactions').insert([newTx]);
-            if (error) alert("Erreur SQL");
+            if (error) alert("Erreur SQL: " + error.message);
             else { closeModal(); fetchSupabase(); }
         }
 
         window.deleteTx = async function(id) {
-            if (prompt("CODE SÉCURITÉ :") === "2026") {
-                await supabaseClient.from('transactions').delete().eq('id', id);
-                fetchSupabase();
+            const codeAdmin = "2026"; 
+            const saisie = prompt("SÉCURITÉ : Entrez le code administrateur pour supprimer :");
+            if (saisie === codeAdmin) {
+                const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
+                if (!error) fetchSupabase();
+            } else if (saisie !== null) {
+                alert("CODE INCORRECT !");
             }
         }
 
-       window.render = function() {
-    const m = document.getElementById('filterMonth').value;
-    const y = document.getElementById('filterYear').value;
-    const body = document.getElementById('excelBody');
-    body.innerHTML = '';
-    
-    // Variables pour les trois compteurs
-    let totalEntrees = 0;
-    let totalSorties = 0;
-
-    transactions.filter(t => {
-        const d = new Date(t.date);
-        return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
-    }).forEach((t, i) => {
-        const isE = t.type === 'ENTREE';
-        
-        // Calcul des totaux séparés
-        if (isE) {
-            totalEntrees += t.montant;
-        } else {
-            totalSorties += t.montant;
-        }
-
-        body.innerHTML += `
-            <tr class="hover:bg-slate-50 border-b">
-                <td class="text-center opacity-50">${i+1}</td>
-                <td>${t.date}</td>
-                <td class="font-bold uppercase">${t.libelle}</td>
-                <td class="text-xs text-slate-500 uppercase">${t.provenance}</td>
-                <td class="text-[10px] italic">${t.mode}</td>
-                <td class="text-right font-mono font-bold ${isE?'text-emerald-600':'text-red-600'}">
-                    ${isE?'+':'-'} ${t.montant.toLocaleString('fr-FR')}
-                </td>
-                <td class="text-center">
-                    <button onclick="deleteTx(${t.id})" class="text-slate-300 hover:text-red-500">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </td>
-            </tr>`;
-    });
-
-    // Calcul du solde global
-    const soldeGlobal = totalEntrees - totalSorties;
-
-    // Affichage des trois compteurs
-    document.getElementById('statEntrees').innerText = totalEntrees.toLocaleString('fr-FR') + " FCFA";
-    document.getElementById('statSorties').innerText = totalSorties.toLocaleString('fr-FR') + " FCFA";
-    
-    const soldeEl = document.getElementById('statSolde');
-    soldeEl.innerText = soldeGlobal.toLocaleString('fr-FR') + " FCFA";
-    
-    // Couleur du solde global selon s'il est positif ou négatif
-    soldeEl.className = `text-xl font-mono font-bold ${soldeGlobal >= 0 ? 'text-white' : 'text-red-400'}`;
-}
-
-        window.exportPDF = function() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-    
-    // Récupération des dates limites
-    const dateDebut = document.getElementById('pdf_start').value;
-    const dateFin = document.getElementById('pdf_end').value;
-
-    if (!dateDebut || !dateFin) {
-        return alert("Veuillez choisir une date de DEBUT et de FIN pour générer le journal.");
-    }
-
-    // Formatage des dates pour l'en-tête (ex: 01/01/2026)
-    const d1 = new Date(dateDebut).toLocaleDateString('fr-FR');
-    const d2 = new Date(dateFin).toLocaleDateString('fr-FR');
-
-    // --- EN-TÊTE ---
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(0, 51, 102);
-    doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
-    
-    doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`JOURNAL DE TRESORERIE DU ${d1} AU ${d2}`, 105, 22, { align: "center" });
-    doc.line(20, 25, 190, 25);
-
-    // --- FILTRAGE ET CALCULS ---
-    let soldeNet = 0;
-    const formatArgent = (num) => new Intl.NumberFormat('fr-FR').format(num).replace(/\u00a0/g, ' ');
-
-    const rows = transactions.filter(t => {
-        const dateT = t.date; // Format YYYY-MM-DD
-        return dateT >= dateDebut && dateT <= dateFin;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date))
-    .map(t => {
-        const isE = t.type === 'ENTREE';
-        soldeNet += isE ? t.montant : -t.montant;
-        return [
-            t.date, 
-            t.libelle.toUpperCase(), 
-            t.provenance.toUpperCase(), 
-            t.mode.toUpperCase(), 
-            (isE ? '+ ' : '- ') + formatArgent(t.montant)
-        ];
-    });
-
-    if (rows.length === 0) return alert("Aucune donnée trouvée pour cette période !");
-
-    // --- TABLEAU ---
-    doc.autoTable({
-        startY: 32,
-        head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
-        body: rows,
-        theme: 'striped',
-        headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
-        columnStyles: {
-            0: { cellWidth: 25 },
-            4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 }
-        },
-        foot: [[
-            { 
-                content: 'SOLDE NET DE LA PÉRIODE', 
-                colSpan: 4, 
-                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
-            },
-            { 
-                content: formatArgent(soldeNet) + " FCFA", 
-                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
-            }
-        ]],
-        styles: { fontSize: 8.5, overflow: 'linebreak' }
-    });
-
-    doc.save(`Journal_GFC_${dateDebut}_au_${dateFin}.pdf`);
-}
-        // Dans window.onload, ajoutez ces lignes :
-const today = new Date();
-const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-document.getElementById('pdf_start').valueAsDate = firstDay; // Par défaut le 1er du mois
-document.getElementById('pdf_end').valueAsDate = today;     // Par défaut aujourd'hui
+        // 3. RENDU INTERFACE
+        window.render = function() {
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            const body = document.getElementById('excelBody');
+            body.innerHTML = '';
             
+            let entrees = 0, sorties = 0;
+
+            transactions.filter(t => {
+                const d = new Date(t.date);
+                return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
+            }).forEach((t, i) => {
+                const isE = t.type === 'ENTREE';
+                if(isE) entrees += t.montant; else sorties += t.montant;
+
+                body.innerHTML += `<tr>
+                    <td class="text-center opacity-50">${i+1}</td>
+                    <td>${t.date}</td>
+                    <td class="font-bold uppercase">${t.libelle}</td>
+                    <td class="text-xs uppercase text-slate-500">${t.provenance}</td>
+                    <td class="text-[10px] italic font-bold">${t.mode}</td>
+                    <td class="text-right font-bold ${isE?'text-emerald-600':'text-red-600'}">
+                        ${isE?'+':'-'} ${formatArgent(t.montant)}
+                    </td>
+                    <td class="text-center">
+                        <button onclick="deleteTx(${t.id})" class="text-slate-200 hover:text-red-500"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                </tr>`;
+            });
+
+            document.getElementById('statEntrees').innerText = formatArgent(entrees) + " FCFA";
+            document.getElementById('statSorties').innerText = formatArgent(sorties) + " FCFA";
+            const solde = entrees - sorties;
+            const soldeEl = document.getElementById('statSolde');
+            soldeEl.innerText = formatArgent(solde) + " FCFA";
+            soldeEl.className = `text-xl font-mono font-bold ${solde >= 0 ? 'text-white' : 'text-red-400'}`;
+        }
+
+        // 4. GENERATION PDF AVEC PERIODE PERSONNALISÉE
+        window.exportPDF = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const dStart = document.getElementById('pdf_start').value;
+            const dEnd = document.getElementById('pdf_end').value;
+
+            if (!dStart || !dEnd) return alert("Veuillez choisir une date de DEBUT et de FIN.");
+
+            const labelD1 = new Date(dStart).toLocaleDateString('fr-FR');
+            const labelD2 = new Date(dEnd).toLocaleDateString('fr-FR');
+
+            // En-tête PDF
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.setTextColor(0, 51, 102);
+            doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
+            
+            doc.setFontSize(11);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`JOURNAL DE TRESORERIE DU ${labelD1} AU ${labelD2}`, 105, 22, { align: "center" });
+            doc.line(20, 25, 190, 25);
+
+            let netFinal = 0;
+            const tableData = transactions.filter(t => {
+                return t.date >= dStart && t.date <= dEnd;
+            }).sort((a,b) => new Date(a.date) - new Date(b.date))
+            .map(t => {
+                const isE = t.type === 'ENTREE';
+                netFinal += isE ? t.montant : -t.montant;
+                return [t.date, t.libelle.toUpperCase(), t.provenance.toUpperCase(), t.mode.toUpperCase(), (isE?'+ ':'- ') + formatArgent(t.montant)];
+            });
+
+            if(tableData.length === 0) return alert("Aucune donnée pour cette période.");
+
+            doc.autoTable({
+                startY: 32,
+                head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
+                columnStyles: { 4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } },
+                foot: [[ 
+                    { 
+                        content: 'SOLDE NET DE LA PÉRIODE', 
+                        colSpan: 4, 
+                        styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
+                    }, 
+                    { 
+                        content: formatArgent(netFinal) + " FCFA", 
+                        styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, fillColor: [245, 245, 245], textColor: [200, 0, 0] } 
+                    } 
+                ]],
+                styles: { fontSize: 8.5 }
+            });
+
+            doc.save(`Journal_GFC_${dStart}_au_${dEnd}.pdf`);
+        }
+
+        // 5. INITIALISATION
+        window.onload = () => {
+            setupYears(); 
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            // Dates PDF par défaut
+            document.getElementById('pdf_start').valueAsDate = firstDay;
+            document.getElementById('pdf_end').valueAsDate = today;
+            
+            // Date formulaire par défaut
+            document.getElementById('f_date').valueAsDate = today;
+
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 fetchSupabase();
-            } catch(e) {
-                console.log("Supabase non configuré");
-            }
+            } catch(e) { console.error("Supabase Init Error"); }
         };
     </script>
 </body>
