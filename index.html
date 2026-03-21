@@ -18,7 +18,8 @@
 </head>
 <body class="h-screen flex flex-col">
 
-    <header class="bg-[#003366] text-white p-4 flex justify-between items-center shadow-lg border-b-4 border-emerald-500">
+    <header class="bg-[#003366] text-white p-4 shadow-lg border-b-4 border-emerald-500">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-4">
             <div class="bg-white p-2 rounded-lg"><i class="fas fa-volleyball-ball text-[#003366] text-xl"></i></div>
             <div>
@@ -26,10 +27,23 @@
                 <p class="text-[10px] uppercase tracking-widest text-blue-200 font-bold">Gbelebaban Football Club</p>
             </div>
         </div>
-        <div class="text-right">
-            <div id="statSolde" class="text-2xl font-mono font-bold text-emerald-400">0 FCFA</div>
+
+        <div class="flex flex-wrap justify-center gap-6 bg-slate-900/40 p-3 rounded-xl border border-white/10">
+            <div class="text-center px-4 border-r border-white/10">
+                <div id="statEntrees" class="text-lg font-mono font-bold text-emerald-400">0 FCFA</div>
+                <div class="text-[9px] uppercase text-emerald-200 opacity-70">Total Entrées</div>
+            </div>
+            <div class="text-center px-4 border-r border-white/10">
+                <div id="statSorties" class="text-lg font-mono font-bold text-red-400">0 FCFA</div>
+                <div class="text-[9px] uppercase text-red-200 opacity-70">Total Dépenses</div>
+            </div>
+            <div class="text-center px-4">
+                <div id="statSolde" class="text-xl font-mono font-bold text-white">0 FCFA</div>
+                <div class="text-[9px] uppercase text-blue-200 opacity-70 font-bold">Solde Global</div>
+            </div>
         </div>
-    </header>
+    </div>
+</header>
 
     <nav class="bg-white border-b p-3 flex justify-between items-center px-6">
         <div class="flex gap-3">
@@ -174,27 +188,60 @@
             }
         }
 
-        window.render = function() {
-            const m = document.getElementById('filterMonth').value;
-            const y = document.getElementById('filterYear').value;
-            const body = document.getElementById('excelBody');
-            body.innerHTML = '';
-            let total = 0;
+       window.render = function() {
+    const m = document.getElementById('filterMonth').value;
+    const y = document.getElementById('filterYear').value;
+    const body = document.getElementById('excelBody');
+    body.innerHTML = '';
+    
+    // Variables pour les trois compteurs
+    let totalEntrees = 0;
+    let totalSorties = 0;
 
-            transactions.filter(t => {
-                const d = new Date(t.date);
-                return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
-            }).forEach((t, i) => {
-                const isE = t.type === 'ENTREE';
-                total += isE ? t.montant : -t.montant;
-                body.innerHTML += `<tr>
-                    <td>${i+1}</td><td>${t.date}</td><td>${t.libelle}</td><td>${t.provenance}</td><td>${t.mode}</td>
-                    <td class="text-right font-bold ${isE?'text-emerald-600':'text-red-600'}">${t.montant.toLocaleString()} FCFA</td>
-                    <td><button onclick="deleteTx(${t.id})"><i class="fas fa-trash"></i></button></td>
-                </tr>`;
-            });
-            document.getElementById('statSolde').innerText = total.toLocaleString() + " FCFA";
+    transactions.filter(t => {
+        const d = new Date(t.date);
+        return (m === 'ALL' || d.getMonth() == m) && d.getFullYear() == y;
+    }).forEach((t, i) => {
+        const isE = t.type === 'ENTREE';
+        
+        // Calcul des totaux séparés
+        if (isE) {
+            totalEntrees += t.montant;
+        } else {
+            totalSorties += t.montant;
         }
+
+        body.innerHTML += `
+            <tr class="hover:bg-slate-50 border-b">
+                <td class="text-center opacity-50">${i+1}</td>
+                <td>${t.date}</td>
+                <td class="font-bold uppercase">${t.libelle}</td>
+                <td class="text-xs text-slate-500 uppercase">${t.provenance}</td>
+                <td class="text-[10px] italic">${t.mode}</td>
+                <td class="text-right font-mono font-bold ${isE?'text-emerald-600':'text-red-600'}">
+                    ${isE?'+':'-'} ${t.montant.toLocaleString('fr-FR')}
+                </td>
+                <td class="text-center">
+                    <button onclick="deleteTx(${t.id})" class="text-slate-300 hover:text-red-500">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>`;
+    });
+
+    // Calcul du solde global
+    const soldeGlobal = totalEntrees - totalSorties;
+
+    // Affichage des trois compteurs
+    document.getElementById('statEntrees').innerText = totalEntrees.toLocaleString('fr-FR') + " FCFA";
+    document.getElementById('statSorties').innerText = totalSorties.toLocaleString('fr-FR') + " FCFA";
+    
+    const soldeEl = document.getElementById('statSolde');
+    soldeEl.innerText = soldeGlobal.toLocaleString('fr-FR') + " FCFA";
+    
+    // Couleur du solde global selon s'il est positif ou négatif
+    soldeEl.className = `text-xl font-mono font-bold ${soldeGlobal >= 0 ? 'text-white' : 'text-red-400'}`;
+}
 
         window.exportPDF = function() {
             const { jsPDF } = window.jspdf;
