@@ -157,7 +157,7 @@
             if(!s) return;
             const curY = new Date().getFullYear();
             s.innerHTML = ''; 
-            for(let y = curY - 5; y <= curY + 2; y++){ 
+            for(let y = curY - 5; y <= curY + 25; y++){ 
                 let o = document.createElement('option'); 
                 o.value = y; o.text = y; 
                 if(y === curY) o.selected = true; 
