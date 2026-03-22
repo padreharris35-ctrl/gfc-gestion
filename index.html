@@ -239,42 +239,74 @@
             sEl.className = `text-xl font-mono font-bold ${solde >= 0 ? 'text-white' : 'text-red-400'}`;
         }
 
-        window.exportPDF = function() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const dS = document.getElementById('pdf_start').value;
-            const dE = document.getElementById('pdf_end').value;
-            if(!dS || !dE) return alert("Sélectionnez les dates.");
+       window.exportPDF = function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const dS = document.getElementById('pdf_start').value;
+    const dE = document.getElementById('pdf_end').value;
+    
+    if(!dS || !dE) return alert("Sélectionnez les dates de début et de fin.");
 
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(16); doc.setTextColor(0, 51, 102);
-            doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
-            doc.setFontSize(11); doc.setTextColor(100, 100, 100);
-            doc.text(`JOURNAL DE TRESORERIE DU ${new Date(dS).toLocaleDateString()} AU ${new Date(dE).toLocaleDateString()}`, 105, 22, { align: "center" });
-            doc.line(20, 25, 190, 25);
+    // --- EN-TÊTE ---
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16); doc.setTextColor(0, 51, 102);
+    doc.text("COMPTABILITE GBELEBAN FOOTBALL CLUB", 105, 15, { align: "center" });
+    
+    doc.setFontSize(11); doc.setTextColor(100, 100, 100);
+    doc.text(`JOURNAL DE TRESORERIE DU ${new Date(dS).toLocaleDateString('fr-FR')} AU ${new Date(dE).toLocaleDateString('fr-FR')}`, 105, 22, { align: "center" });
+    doc.line(20, 25, 190, 25);
 
-            let net = 0;
-            const data = transactions.filter(t => t.date >= dS && t.date <= dE).sort((a,b) => new Date(a.date) - new Date(b.date))
-            .map(t => {
-                const isE = t.type === 'ENTREE'; net += isE ? t.montant : -t.montant;
-                return [t.date, t.libelle.toUpperCase(), t.provenance.toUpperCase(), t.mode.toUpperCase(), (isE?'+ ':'- ')+formatArgent(t.montant)];
-            });
+    let net = 0;
+    const formatArgentPDF = (num) => new Intl.NumberFormat('fr-FR').format(num).replace(/\s/g, ' ').replace(/\u00a0/g, ' ');
 
-            doc.autoTable({
-                startY: 32,
-                head: [['DATE', 'DESIGNATION', 'TIERS', 'MODE', 'MONTANT (FCFA)']],
-                body: data,
-                theme: 'striped',
-                headStyles: { fillColor: [0, 51, 102], halign: 'center' },
-                columnStyles: { 4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } },
-                foot: [[
-                    { content: 'SOLDE NET DE LA PÉRIODE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, textColor: [200, 0, 0] } },
-                    { content: formatArgent(net) + " FCFA", styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, textColor: [200, 0, 0] } }
-                ]],
-                styles: { fontSize: 8.5 }
-            });
-            doc.save(`Journal_GFC_Export.pdf`);
-        }
+    const data = transactions.filter(t => t.date >= dS && t.date <= dE)
+    .sort((a,b) => new Date(a.date) - new Date(b.date))
+    .map(t => {
+        const isE = t.type === 'ENTREE'; 
+        net += isE ? t.montant : -t.montant;
+        return [t.date, t.libelle.toUpperCase(), t.provenance.toUpperCase(), t.mode.toUpperCase(), (isE?'+ ':'- ')+formatArgentPDF(t.montant)];
+    });
+
+    if(data.length === 0) return alert("Aucune donnée pour cette période.");
+
+    // --- GÉNÉRATION DU TABLEAU ---
+    doc.autoTable({
+        startY: 32,
+        head: [['DATE', 'DESIGNATION', 'TIERS / CLIENT', 'MODE', 'MONTANT (FCFA)']],
+        body: data,
+        theme: 'striped',
+        headStyles: { fillColor: [0, 51, 102], halign: 'center', fontSize: 9 },
+        columnStyles: { 4: { halign: 'right', fontStyle: 'bold', cellWidth: 45 } },
+        
+        // LOGIQUE : N'afficher le pied de page QUE sur la dernière page
+        showFoot: 'lastPage', 
+        
+        foot: [[
+            { 
+                content: 'SOLDE NET DE LA PÉRIODE', 
+                colSpan: 4, 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, textColor: [200, 0, 0], fillColor: [245, 245, 245] } 
+            },
+            { 
+                content: formatArgentPDF(net) + " FCFA", 
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 12, textColor: [200, 0, 0], fillColor: [245, 245, 245] } 
+            }
+        ]],
+        styles: { fontSize: 8.5, font: "helvetica" },
+        margin: { bottom: 20 } // Laisse de l'espace pour ne pas coller au bord
+    });
+
+    // Optionnel : Ajouter un numéro de page en bas
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Page ${i} sur ${pageCount}`, 105, 285, { align: "center" });
+    }
+
+    doc.save(`Journal_GFC_${dS}_au_${dE}.pdf`);
+}
 
         // 3. INITIALISATION AVEC DIAGNOSTIC
         window.onload = async () => {
