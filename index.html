@@ -16,9 +16,9 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
-      SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
-      WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
+      SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+      SUPABASE_ANON_KEY: 'VOTRE_CLE_ANON_PUBLIQUE',
+      WORKER_URL: 'https://gfc-fichiers.VOTRE-SOUS-DOMAINE.workers.dev',
     };
     /* ================ FIN DES RÉGLAGES — ne rien modifier en dessous ================ */
   </script>
@@ -3959,38 +3959,115 @@ const __app = (() => {
     telechargerBlob(nomFichier, new Blob([octets], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   }
 
+  /**
+   * Trouve la fonction de tableau de jspdf-autotable, quelle que soit la
+   * façon dont le CDN l'expose (export nommé, export par défaut, objet
+   * imbriqué, ou méthode ajoutée à jsPDF).
+   */
+  async function chargerOutilsPdf() {
+    const modPdf = await import(URL_JSPDF);
+    const JsPDF = [modPdf.jsPDF, modPdf.default?.jsPDF, modPdf.default].find((f) => typeof f === 'function');
+    if (!JsPDF) throw new Error('Outil PDF indisponible. Réessayez dans un instant.');
+    let autoTable = null;
+    try {
+      const modTable = await import(URL_AUTOTABLE);
+      const appliquer = [modTable.applyPlugin, modTable.default?.applyPlugin].find((f) => typeof f === 'function');
+      if (appliquer) { try { appliquer(JsPDF); } catch { /* sans gravité */ } }
+      autoTable = [modTable.autoTable, modTable.default, modTable.default?.autoTable, modTable.default?.default]
+        .find((f) => typeof f === 'function') || null;
+    } catch (err) {
+      console.warn('jspdf-autotable non chargé, tableau dessiné par le site', err);
+    }
+    if (!autoTable && typeof JsPDF.API?.autoTable === 'function') autoTable = (d, o) => d.autoTable(o);
+    return { JsPDF, autoTable };
+  }
+
+  /**
+   * Tableau dessiné directement avec jsPDF (solution de secours) :
+   * colonnes proportionnelles au contenu, texte replié, en-tête répété
+   * sur chaque page, lignes alternées.
+   */
+  function tableauSimple(doc, { entetes, lignes, haut, marge, taille, surNouvellePage }) {
+    const L = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const dispo = L - marge * 2;
+    const poids = entetes.map((e, i) => Math.min(38, Math.max(String(e).length, ...lignes.map((l) => String(l[i] ?? '').length))) + 3);
+    const somme = poids.reduce((a, b) => a + b, 0);
+    const larg = poids.map((p) => (p / somme) * dispo);
+    const pad = 3;
+    const hl = taille * 1.2;
+    let y = haut;
+
+    const dessiner = (cellules, entete, fond) => {
+      doc.setFont('helvetica', entete ? 'bold' : 'normal');
+      doc.setFontSize(taille);
+      const textes = cellules.map((c, i) => doc.splitTextToSize(String(c ?? ''), Math.max(10, larg[i] - pad * 2)));
+      const h = Math.max(1, ...textes.map((t) => t.length)) * hl + pad * 2;
+      if (!entete && y + h > H - 40) {
+        doc.addPage();
+        surNouvellePage();
+        y = haut;
+        dessiner(entetes, true);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(taille);
+      }
+      let x = marge;
+      if (entete) doc.setFillColor(24, 74, 147); else if (fond) doc.setFillColor(244, 246, 251);
+      if (entete || fond) doc.rect(marge, y, dispo, h, 'F');
+      doc.setDrawColor(226, 230, 238); doc.setLineWidth(0.5); doc.line(marge, y + h, marge + dispo, y + h);
+      if (entete) doc.setTextColor(255, 255, 255); else doc.setTextColor(20, 32, 52);
+      textes.forEach((t, i) => { doc.text(t, x + pad, y + pad + taille * 0.85); x += larg[i]; });
+      y += h;
+    };
+
+    dessiner(entetes, true);
+    if (!lignes.length) {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(taille); doc.setTextColor(90, 100, 120);
+      doc.text('Aucune donnée.', marge + pad, y + pad + taille);
+      return;
+    }
+    lignes.forEach((l, i) => dessiner(l, false, i % 2 === 1));
+  }
+
   /** PDF : en-tête du club, un tableau par jeu de données. */
   async function versPdf(jeux, nomFichier) {
-    const [modPdf, modTable] = await Promise.all([import(URL_JSPDF), import(URL_AUTOTABLE)]);
-    const JsPDF = modPdf.jsPDF || modPdf.default;
-    const autoTable = modTable.default || modTable.autoTable;
+    const { JsPDF, autoTable } = await chargerOutilsPdf();
     const doc = new JsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     const largeur = doc.internal.pageSize.getWidth();
     const hauteur = doc.internal.pageSize.getHeight();
     const dateEdition = formatDateLongue(aujourdhui());
 
+    const enTete = (titre) => {
+      try { if (window.LOGO_GFC) doc.addImage(window.LOGO_GFC, 'PNG', 28, 20, 52, 52); } catch { /* sans logo */ }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(15, 47, 99);
+      doc.text(titre, 90, 44);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 100, 120);
+      doc.text(`${CONFIG.CLUB_NOM} · saison ${saisonCourante()} · édité le ${dateEdition}`, 90, 62);
+      doc.setDrawColor(226, 20, 20); doc.setLineWidth(1.5); doc.line(28, 80, 92, 80);
+      doc.setFontSize(8); doc.setTextColor(120, 128, 145);
+      doc.text('Document confidentiel — données personnelles', 28, hauteur - 16);
+      doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber}`, largeur - 28, hauteur - 16, { align: 'right' });
+    };
+
     jeux.forEach((j, i) => {
       if (i > 0) doc.addPage();
-      autoTable(doc, {
-        head: [j.entetes],
-        body: j.lignes.length ? j.lignes.map((l) => l.map((c) => String(propre(c)))) : [[{ content: 'Aucune donnée.', colSpan: j.entetes.length }]],
-        startY: 92,
-        margin: { top: 92, left: 28, right: 28, bottom: 36 },
-        styles: { font: 'helvetica', fontSize: j.entetes.length > 10 ? 7.5 : 9, cellPadding: 4, overflow: 'linebreak', textColor: [20, 32, 52], lineColor: [226, 230, 238], lineWidth: 0.5 },
-        headStyles: { fillColor: [24, 74, 147], textColor: 255, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [244, 246, 251] },
-        didDrawPage: () => {
-          try { if (window.LOGO_GFC) doc.addImage(window.LOGO_GFC, 'PNG', 28, 20, 52, 52); } catch { /* sans logo */ }
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(15, 47, 99);
-          doc.text(j.titre, 90, 44);
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 100, 120);
-          doc.text(`${CONFIG.CLUB_NOM} · saison ${saisonCourante()} · édité le ${dateEdition}`, 90, 62);
-          doc.setDrawColor(226, 20, 20); doc.setLineWidth(1.5); doc.line(28, 80, 92, 80);
-          doc.setFontSize(8); doc.setTextColor(120, 128, 145);
-          doc.text('Document confidentiel — données personnelles', 28, hauteur - 16);
-          doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber}`, largeur - 28, hauteur - 16, { align: 'right' });
-        },
-      });
+      const lignes = j.lignes.map((l) => l.map((c) => String(propre(c))));
+      const taille = j.entetes.length > 10 ? 7.5 : 9;
+      if (autoTable) {
+        autoTable(doc, {
+          head: [j.entetes],
+          body: lignes.length ? lignes : [[{ content: 'Aucune donnée.', colSpan: j.entetes.length }]],
+          startY: 92,
+          margin: { top: 92, left: 28, right: 28, bottom: 36 },
+          styles: { font: 'helvetica', fontSize: taille, cellPadding: 4, overflow: 'linebreak', textColor: [20, 32, 52], lineColor: [226, 230, 238], lineWidth: 0.5 },
+          headStyles: { fillColor: [24, 74, 147], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [244, 246, 251] },
+          didDrawPage: () => enTete(j.titre),
+        });
+      } else {
+        enTete(j.titre);
+        tableauSimple(doc, { entetes: j.entetes, lignes, haut: 92, marge: 28, taille, surNouvellePage: () => enTete(j.titre) });
+      }
     });
     telechargerBlob(nomFichier, doc.output('blob'));
   }
