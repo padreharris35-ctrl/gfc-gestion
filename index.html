@@ -1534,20 +1534,40 @@ const __auth = (() => {
     const jeton = data.session?.access_token;
     if (!jeton) throw new Error('Session expirée. Reconnectez-vous.');
 
+    const base = CONFIG.WORKER_URL.trim().replace(/\/+$/, '').replace(/\/sante$/, '');
     let res;
     try {
-      res = await fetch(`${CONFIG.WORKER_URL.replace(/\/+$/, '')}${chemin}`, {
+      res = await fetch(`${base}${chemin}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jeton}` },
         body: JSON.stringify(corps),
       });
     } catch {
-      throw new Error('Service de fichiers injoignable. Vérifiez votre connexion, WORKER_URL en haut de index.html et ALLOWED_ORIGINS du Worker.');
+      throw new Error(await diagnostiquerWorker(base));
     }
     let donnees = {};
     try { donnees = await res.json(); } catch { /* réponse vide */ }
     if (!res.ok) throw new Error(donnees.erreur || `Erreur du service de fichiers (code ${res.status}).`);
     return donnees;
+  }
+
+  /**
+   * Quand l'appel au Worker échoue, cherche la cause exacte :
+   * pas d'internet, mauvaise adresse du Worker, ou site non autorisé (CORS).
+   */
+  async function diagnostiquerWorker(base) {
+    if (!navigator.onLine) return 'Pas de connexion internet. Réessayez une fois connecté.';
+    if (!/^https:\/\/[^/]+$/.test(base)) {
+      return `L'adresse du Worker (ligne 21 de index.html) est mal écrite : « ${base} ». Elle doit ressembler à https://gfc-fichiers.votre-nom.workers.dev`;
+    }
+    let joignable = false;
+    try {
+      await fetch(`${base}/sante`, { mode: 'no-cors', cache: 'no-store' });
+      joignable = true;
+    } catch { /* Worker introuvable */ }
+    return joignable
+      ? `Le Worker répond mais refuse ce site. Dans Cloudflare › Worker › Settings › Variables and Secrets, mettez ALLOWED_ORIGINS = ${location.origin} (exactement, sans rien après), puis cliquez sur Deploy.`
+      : `Worker introuvable à l'adresse ${base}. Vérifiez WORKER_URL (ligne 21 de index.html) : en ouvrant ${base}/sante vous devez voir {"ok":true}.`;
   }
 
   /* ---------------------------------------------------------------------
