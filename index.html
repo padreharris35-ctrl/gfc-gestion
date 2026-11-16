@@ -16,9 +16,9 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
-      SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
-      WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
+      SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+      SUPABASE_ANON_KEY: 'VOTRE_CLE_ANON_PUBLIQUE',
+      WORKER_URL: 'https://gfc-fichiers.VOTRE-SOUS-DOMAINE.workers.dev',
     };
     /* ================ FIN DES RÉGLAGES — ne rien modifier en dessous ================ */
   </script>
@@ -884,6 +884,39 @@ p.chiffre-note { margin: -0.4rem 0 0.7rem; font-size: 0.98rem; color: var(--encr
 .champ-case { justify-content: flex-end; }
 .champ-case .case { min-height: 44px; font-weight: 500; }
 
+
+/* Rubriques par catégorie (page Joueurs) */
+.rubriques { margin: 0 0 0.9rem; }
+.rubriques-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.7rem; }
+.rubrique { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; text-align: left; font: inherit; color: var(--encre);
+  background: var(--blanc); border: 1px solid var(--filet); border-top: 4px solid var(--bleu); border-radius: var(--rayon);
+  padding: 0.85rem 1rem 0.9rem; cursor: pointer; box-shadow: var(--ombre);
+  transition: transform 0.4s var(--ease-luxe), box-shadow 0.4s var(--ease-luxe), background var(--transition); }
+.rubrique:hover { transform: translateY(-3px); box-shadow: var(--ombre-forte); }
+.rubrique:focus-visible { outline: none; box-shadow: var(--focus); }
+.rubrique-nom { font-size: 1.9rem; font-weight: 700; line-height: 1.05; color: var(--bleu-profond); }
+.rubrique-saison { font-size: 0.85rem; font-style: italic; color: var(--encre-douce); }
+.rubrique-nombre { font-size: 1.05rem; color: var(--encre-douce); }
+.rubrique-nombre strong { font-size: 1.35rem; color: var(--bleu); }
+.rubrique-alerte { font-size: 0.85rem; font-weight: 700; color: var(--rouge-fonce); }
+.rubrique-ok { font-size: 0.85rem; color: var(--vert); }
+.rubrique-tous { border-top-color: var(--bleu-nuit); background: var(--bleu-voile); }
+.rubrique-active { background: var(--bleu); border-color: var(--bleu); border-top-color: var(--rouge); }
+.rubrique-active .rubrique-nom, .rubrique-active .rubrique-nombre, .rubrique-active .rubrique-nombre strong,
+.rubrique-active .rubrique-saison, .rubrique-active .rubrique-ok { color: var(--blanc); }
+.rubrique-active .rubrique-alerte { color: #ffd2d2; }
+.rubriques-compactes .rubriques-grille { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.45rem; }
+.rubriques-compactes .rubrique { padding: 0.45rem 0.7rem; border-top-width: 3px; }
+.rubriques-compactes .rubrique-nom { font-size: 1.2rem; }
+.rubriques-compactes .rubrique-nombre { font-size: 0.9rem; }
+.rubriques-compactes .rubrique-nombre strong { font-size: 1rem; }
+.rubriques-compactes .rubrique-alerte, .rubriques-compactes .rubrique-ok { display: none; }
+.rubriques-retour { font: inherit; font-size: 1rem; background: none; border: 0; color: var(--bleu); cursor: pointer; padding: 0 0 0.45rem; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 760px) {
+  .rubriques-grille { grid-template-columns: repeat(2, 1fr); }
+  .rubriques-compactes .rubriques-grille { grid-template-columns: repeat(3, 1fr); }
+  .rubrique-nom { font-size: 1.5rem; }
+}
   </style>
 </head>
 <body>
@@ -2911,7 +2944,12 @@ const __people = (() => {
   async function afficherListe(vue, type, query = {}) {
     const t = TYPES_PERSONNES[type];
     const f = filtres[type];
-    if (query.dossier && 'dossier' in f) { f.dossier = query.dossier; f.statut = 'presents'; }
+    if (query.dossier && 'dossier' in f) {
+      f.dossier = query.dossier; f.statut = 'presents';
+      f.recherche = ''; if ('poste' in f) f.poste = ''; if ('fonction' in f) f.fonction = '';
+      if (type === 'player') f.categorie = 'tous';
+    }
+    if (type === 'player' && query.categorie) f.categorie = query.categorie;
     const ecriture = peutEcrire();
     const selectionPossible = type === 'player' && ecriture;
 
@@ -2942,14 +2980,14 @@ const __people = (() => {
         ${ecriture ? html`<div class="page-actions"><a class="bouton bouton-principal" href="#/${t.route}/nouveau">${t.nouveau}</a></div>` : ''}
       </header>
 
+      ${type === 'player' ? html`<nav class="rubriques" data-rubriques aria-label="Catégories"></nav>` : ''}
+
       <div class="filtres" role="search">
         <div class="champ champ-recherche">
           <label for="f-recherche" class="visuellement-cache">Rechercher</label>
           <input id="f-recherche" type="search" placeholder="Rechercher un nom, un téléphone…" value="${f.recherche}" autocomplete="off">
         </div>
         ${type === 'player' ? html`
-          <div class="champ"><label for="f-categorie">Catégorie</label>
-            <select id="f-categorie">${optionsCategories(f.categorie, { vide: 'Toutes', saisons: [saisonCourante(), ...personnes.map((p) => categorie(p.details.category_id)?.saison).filter(Boolean)] })}<option value="aucune" ${f.categorie === 'aucune' ? raw('selected') : ''}>Sans catégorie</option></select></div>
           <div class="champ"><label for="f-poste">Poste</label>
             <select id="f-poste">${options(POSTES, f.poste, { vide: 'Tous' })}</select></div>` : html`
           <div class="champ"><label for="f-fonction">Fonction</label>
@@ -2981,7 +3019,7 @@ const __people = (() => {
         if (f.statut && f.statut !== 'presents' && p.statut !== f.statut) return false;
         if (type === 'player') {
           if (f.categorie === 'aucune' && p.details.category_id) return false;
-          if (f.categorie && f.categorie !== 'aucune' && p.details.category_id !== f.categorie) return false;
+          if (f.categorie && !['aucune', 'tous'].includes(f.categorie) && p.details.category_id !== f.categorie) return false;
           if (f.poste && p.details.poste !== f.poste) return false;
         } else if (f.fonction && p.fonction !== f.fonction) return false;
         return true;
@@ -2999,9 +3037,63 @@ const __people = (() => {
       ? html`<span class="dossier-etat dossier-incomplet">${p.problemes} pièce${p.problemes > 1 ? 's' : ''} à régulariser</span>`
       : html`<span class="dossier-etat dossier-complet">Complet</span>`);
 
+    // --- Rubriques par catégorie (joueurs) : un clic affiche la liste de la catégorie
+    const presents = personnes.filter((p) => p.statut !== 'parti');
+    const rubriques = type === 'player' ? (() => {
+      const avecJoueurs = new Set(presents.map((p) => p.details.category_id).filter(Boolean));
+      const cats = categories()
+        .filter((c) => c.saison === saisonCourante() || avecJoueurs.has(c.id))
+        .sort((a, b) => (a.saison === b.saison ? (a.ordre ?? 0) - (b.ordre ?? 0) : (a.saison === saisonCourante() ? -1 : b.saison === saisonCourante() ? 1 : b.saison.localeCompare(a.saison))));
+      const r = cats.map((c) => {
+        const js = presents.filter((p) => p.details.category_id === c.id);
+        return { id: c.id, nom: c.nom, saison: c.saison, n: js.length, aRegler: js.filter((p) => p.problemes).length };
+      });
+      const sans = presents.filter((p) => !p.details.category_id);
+      if (sans.length) r.push({ id: 'aucune', nom: 'Sans catégorie', n: sans.length, aRegler: sans.filter((p) => p.problemes).length });
+      r.push({ id: 'tous', nom: 'Tous les joueurs', n: presents.length, aRegler: presents.filter((p) => p.problemes).length, tous: true });
+      return r;
+    })() : [];
+    const modeAccueil = () => type === 'player' && !f.categorie;
+
+    const afficherRubriques = () => {
+      const nav = vue.querySelector('[data-rubriques]');
+      if (!nav) return;
+      nav.classList.toggle('rubriques-compactes', !modeAccueil());
+      setHtml(nav, html`
+        ${!modeAccueil() ? html`<button type="button" class="rubriques-retour" data-rubrique="">${raw('&larr;')} Toutes les catégories</button>` : ''}
+        <div class="rubriques-grille">
+          ${rubriques.map((r) => html`
+            <button type="button" class="rubrique ${r.tous ? 'rubrique-tous' : ''} ${f.categorie === r.id ? 'rubrique-active' : ''}" data-rubrique="${r.id}" aria-pressed="${f.categorie === r.id ? 'true' : 'false'}">
+              <span class="rubrique-nom">${r.nom}</span>
+              ${r.saison && r.saison !== saisonCourante() ? html`<span class="rubrique-saison">${r.saison}</span>` : ''}
+              <span class="rubrique-nombre"><strong>${r.n}</strong> joueur${r.n > 1 ? 's' : ''}</span>
+              ${r.aRegler ? html`<span class="rubrique-alerte">${r.aRegler} dossier${r.aRegler > 1 ? 's' : ''} à régulariser</span>` : html`<span class="rubrique-ok">${r.n ? 'Dossiers complets' : 'Aucun joueur'}</span>`}
+            </button>`)}
+        </div>`);
+      $$('[data-rubrique]', nav).forEach((b) => b.addEventListener('click', () => {
+        f.categorie = b.dataset.rubrique;
+        if (!f.categorie) { f.recherche = ''; f.poste = ''; f.dossier = ''; f.statut = 'presents'; synchroniserChamps(); }
+        selection.clear(); majSelection();
+        afficherRubriques(); afficher();
+        if (f.categorie) vue.querySelector('[data-resultats]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }));
+    };
+
+    const synchroniserChamps = () => {
+      [['#f-recherche', 'recherche'], ['#f-poste', 'poste'], ['#f-statut', 'statut'], ['#f-dossier', 'dossier']].forEach(([sel, cle]) => {
+        const c = vue.querySelector(sel); if (c) c.value = f[cle];
+      });
+    };
+
     const afficher = () => {
+      if (modeAccueil()) {
+        vue.querySelector('[data-total]').textContent = `${presents.length} joueur${presents.length > 1 ? 's' : ''} · saison ${saisonCourante()} · choisissez une catégorie`;
+        setHtml(zone, '');
+        return;
+      }
       const liste = filtrer();
-      vue.querySelector('[data-total]').textContent = `${liste.length} sur ${personnes.length} · saison ${saisonCourante()}`;
+      const rub = rubriques.find((r) => r.id === f.categorie);
+      vue.querySelector('[data-total]').textContent = `${rub && !rub.tous ? `${rub.nom}${rub.saison && rub.saison !== saisonCourante() ? ` (${rub.saison})` : ''} · ` : ''}${liste.length} sur ${personnes.length} · saison ${saisonCourante()}`;
       if (!liste.length) {
         setHtml(zone, vide(personnes.length ? 'Aucun résultat pour ces filtres.' : `Aucune fiche pour l’instant.${ecriture ? ` Commencez par ajouter ${t.un}.` : ''}`));
         return;
@@ -3056,11 +3148,14 @@ const __people = (() => {
     const brancher = (id, cle, evenement = 'change') => {
       const champ = vue.querySelector(id);
       if (!champ) return;
-      const maj = () => { f[cle] = champ.value; afficher(); };
+      const maj = () => {
+        f[cle] = champ.value;
+        if (modeAccueil() && champ.value && champ.value !== 'presents') { f.categorie = 'tous'; afficherRubriques(); }
+        afficher();
+      };
       champ.addEventListener(evenement, evenement === 'input' ? antiRebond(maj, 150) : maj);
     };
     brancher('#f-recherche', 'recherche', 'input');
-    brancher('#f-categorie', 'categorie');
     brancher('#f-poste', 'poste');
     brancher('#f-fonction', 'fonction');
     brancher('#f-statut', 'statut');
@@ -3075,6 +3170,7 @@ const __people = (() => {
       if (n !== null) afficherListe(vue, type);
     });
 
+    afficherRubriques();
     afficher();
   }
 
