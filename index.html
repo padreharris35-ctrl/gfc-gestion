@@ -16,7 +16,7 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-     SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
+      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
       SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
       WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
     };
@@ -917,6 +917,11 @@ p.chiffre-note { margin: -0.4rem 0 0.7rem; font-size: 0.98rem; color: var(--encr
   .rubriques-compactes .rubriques-grille { grid-template-columns: repeat(3, 1fr); }
   .rubrique-nom { font-size: 1.5rem; }
 }
+
+/* Programme du match par mail */
+.case-programme { margin: 0.4rem 0 0.2rem; }
+.programme-envoye { margin-top: 0.4rem; color: var(--vert); }
+.apercu-mail { white-space: pre-wrap; font-family: var(--police); font-size: 0.95rem; background: var(--bleu-voile); border: 1px solid var(--filet); border-radius: var(--rayon-petit); padding: 0.7rem 0.9rem; max-height: 38vh; overflow: auto; margin: 0.5rem 0; }
   </style>
 </head>
 <body>
@@ -3778,10 +3783,80 @@ const __matches = (() => {
   const {
     html, raw, setHtml, $, $$, notifier, confirmer, messageErreur, vide, naviguer, modale,
     DOCS_MATCH, COMPETITIONS, RESULTATS, formatDateLongue, formatHeure, jourEtMois, aujourdhui,
-    resultatMatch, pastilleResultat, options, valeursFormulaire, urlSure, nomComplet, un, estAmical,
+    resultatMatch, pastilleResultat, options, valeursFormulaire, urlSure, nomComplet, un, estAmical, formatDateHeure,
   } = __ui;
 
   const filtres = { saison: '', categorie: '', resultat: '' };
+
+  /* ---------------------------------------------------------------------
+   *  Programme du match par mail
+   * ------------------------------------------------------------------- */
+  const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+  const detailDestinataires = (c = {}) => [
+    c.joueurs ? pluriel(c.joueurs, 'joueur') : '', c.parents ? pluriel(c.parents, 'parent') : '',
+    c.staff ? `${c.staff} staff` : '', c.dirigeants ? pluriel(c.dirigeants, 'dirigeant') : '',
+  ].filter(Boolean).join(', ');
+
+  /** Envoi par le site (Worker + Brevo). En mode automatique, un service non activé n'est pas une erreur. */
+  async function envoyerProgramme(idMatch, { automatique = false } = {}) {
+    try {
+      const r = await appelWorker('/match-programme', { match_id: idMatch, mode: 'envoyer' });
+      notifier(`Programme du match envoyé par mail à ${pluriel(r.envoyes, 'destinataire')} (${detailDestinataires(r.compte)}).`, 'succes');
+      return r;
+    } catch (err) {
+      const msg = messageErreur(err);
+      if (automatique && /pas encore activé/.test(msg)) {
+        notifier('Envoi automatique du programme non activé : utilisez « Envoyer le programme par mail » sur la page du match.', 'info');
+      } else {
+        notifier(`Programme non envoyé : ${msg}`, 'erreur');
+      }
+      throw err;
+    }
+  }
+
+  /** Ouvre la messagerie de l'utilisateur avec le mail prêt (destinataires en copie cachée). */
+  async function ouvrirMessagerie(idMatch) {
+    const r = await appelWorker('/match-programme', { match_id: idMatch, mode: 'liste' });
+    if (!r.emails.length) throw new Error('Aucune adresse email enregistrée pour ce match (joueurs, parents, staff de la catégorie ou comptes du site).');
+    const sujet = encodeURIComponent(r.objet);
+    const corps = encodeURIComponent(r.texte);
+    const cci = r.emails.join(',');
+    let lien = `mailto:?bcc=${encodeURIComponent(cci)}&subject=${sujet}&body=${corps}`;
+    if (lien.length > 1900) {
+      // Trop d'adresses pour un lien : on les copie, l'utilisateur les colle dans « Cci »
+      try { await navigator.clipboard.writeText(cci); } catch { /* copie impossible */ }
+      lien = `mailto:?subject=${sujet}&body=${corps}`;
+      notifier(`${r.emails.length} adresses copiées : collez-les dans le champ « Cci » de votre mail.`, 'info');
+    }
+    window.location.href = lien;
+    return r;
+  }
+
+  async function fenetreProgramme(m, surEnvoi) {
+    let apercu = null;
+    try { apercu = await appelWorker('/match-programme', { match_id: m.id, mode: 'liste' }); } catch (err) { notifier(messageErreur(err), 'erreur'); return; }
+    await modale({
+      titre: 'Envoyer le programme du match',
+      libelleValider: 'Envoyer maintenant',
+      corps: html`
+        <p class="texte-confirmation"><strong>${apercu.objet}</strong></p>
+        <p>${apercu.emails.length ? html`Destinataires : <strong>${pluriel(apercu.emails.length, 'adresse')}</strong> (${detailDestinataires(apercu.compte)}), en copie cachée.` : html`<span class="texte-danger">Aucune adresse email enregistrée pour ce match.</span>`}</p>
+        ${m.programme_envoye_le ? html`<p class="aide">Déjà envoyé le ${formatDateHeure(m.programme_envoye_le)}${m.programme_destinataires ? ` à ${pluriel(m.programme_destinataires, 'destinataire')}` : ''}.</p>` : ''}
+        <pre class="apercu-mail">${apercu.texte}</pre>
+        <p><button type="button" class="bouton bouton-secondaire bouton-petit" data-messagerie>Ouvrir plutôt dans ma messagerie</button></p>`,
+      onMonter: (dlg) => {
+        dlg.querySelector('[data-messagerie]').addEventListener('click', async () => {
+          try { await ouvrirMessagerie(m.id); dlg.close(); } catch (err) { notifier(messageErreur(err), 'erreur'); }
+        });
+      },
+      onValider: async () => {
+        const r = await envoyerProgramme(m.id).catch(() => null);
+        if (!r) return false;
+        if (surEnvoi) surEnvoi();
+        return true;
+      },
+    });
+  }
 
   /** Vrai si un match officiel déjà joué n'a pas encore sa feuille en ligne. */
   function feuilleManquante(m, avecFeuille) {
@@ -3916,8 +3991,10 @@ const __matches = (() => {
         </p>
         <div class="page-actions">
           ${modif ? html`<a class="bouton bouton-secondaire" href="#/matchs/${m.id}/modifier">${r ? 'Modifier' : 'Saisir le résultat'}</a>` : ''}
+          ${modif && !r ? html`<button type="button" class="bouton bouton-secondaire" data-action="programme">Envoyer le programme par mail</button>` : ''}
           ${peutEcrire() ? html`<button type="button" class="bouton bouton-discret texte-danger" data-action="supprimer">Supprimer</button>` : ''}
         </div>
+        ${!r && m.programme_envoye_le ? html`<p class="aide programme-envoye">Programme envoyé par mail le ${formatDateHeure(m.programme_envoye_le)}${m.programme_destinataires ? ` à ${pluriel(m.programme_destinataires, 'destinataire')}` : ''}.</p>` : ''}
       </header>
 
       ${manque ? html`
@@ -3950,6 +4027,8 @@ const __matches = (() => {
         surChangement: () => afficherMatch(vue, id),
       }),
     ]);
+
+    vue.querySelector('[data-action="programme"]')?.addEventListener('click', () => fenetreProgramme(m, () => afficherMatch(vue, id)));
 
     vue.querySelector('[data-aller-documents]')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -4188,6 +4267,7 @@ const __matches = (() => {
           <div class="champ"><label for="m-notes">Notes de l’entraîneur</label><textarea id="m-notes" name="notes" rows="5" maxlength="8000">${m.notes || ''}</textarea></div>
         </fieldset>
 
+        ${!id ? html`<label class="case case-forte case-programme"><input type="checkbox" name="envoyer_programme" checked> Envoyer le programme par mail dès l’enregistrement (joueurs et parents de la catégorie, staff, dirigeants) — pour un match à venir</label>` : ''}
         <p class="formulaire-erreur" role="alert" hidden></p>
         <div class="formulaire-pied">
           <a class="bouton bouton-discret" href="#/matchs${id ? `/${id}` : ''}">Annuler</a>
@@ -4272,6 +4352,12 @@ const __matches = (() => {
         }
         notifier(id ? 'Match enregistré.' : 'Match créé.', 'succes');
         naviguer(`matchs/${idMatch}`);
+        // Envoi automatique du programme pour un nouveau match à venir
+        if (!id && sc === null && v.date >= aujourdhui() && form.envoyer_programme?.checked) {
+          envoyerProgramme(idMatch, { automatique: true })
+            .then(() => { if (location.hash === `#/matchs/${idMatch}`) afficherMatch(vue, idMatch); })
+            .catch(() => {});
+        }
       } catch (err) {
         erreur(messageErreur(err));
       } finally {
