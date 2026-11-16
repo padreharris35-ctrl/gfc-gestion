@@ -16,9 +16,9 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
-      SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
-      WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
+      SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+      SUPABASE_ANON_KEY: 'VOTRE_CLE_ANON_PUBLIQUE',
+      WORKER_URL: 'https://gfc-fichiers.VOTRE-SOUS-DOMAINE.workers.dev',
     };
     /* ================ FIN DES RÉGLAGES — ne rien modifier en dessous ================ */
   </script>
@@ -760,6 +760,67 @@ body.sortie { opacity: 0; }
   body { background: var(--blanc); }
   .bloc { box-shadow: none; break-inside: avoid; }
   .a-reveler { opacity: 1 !important; transform: none !important; }
+}
+
+
+/* =====================================================================
+   STATISTIQUES DU TABLEAU DE BORD
+   Diagramme circulaire des résultats et classements buteurs / passeurs
+   ===================================================================== */
+.bloc-statistiques { margin-bottom: 0.75rem; }
+.stats-grille { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0.75rem 1.4rem; }
+.stats-colonne { min-width: 0; }
+.stats-colonne + .stats-colonne { border-left: 1px solid var(--filet); padding-left: 1.4rem; }
+.stats-colonne h3 { font-size: 1.3rem; color: var(--bleu); margin-bottom: 0.5rem; }
+
+.diagramme { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; }
+.anneau-resultats { width: 168px; height: 168px; flex: none; transform: rotate(0deg); }
+.anneau-resultats .arc { animation: arcEntree 1.4s var(--ease-luxe) both; }
+.anneau-resultats .arc-nul { animation-delay: 0.15s; }
+.anneau-resultats .arc-defaite { animation-delay: 0.3s; }
+@keyframes arcEntree { from { stroke-dasharray: 0 100; } }
+.anneau-total { font-family: var(--police); font-size: 10px; font-weight: 700; fill: var(--bleu-profond); }
+.anneau-legende-centre { font-family: var(--police); font-size: 3.2px; fill: var(--encre-douce); letter-spacing: 0.02em; }
+.legende { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 150px; }
+.legende li { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 0.5rem; align-items: center; font-size: 1.02rem; }
+.pastille-couleur { width: 14px; height: 14px; border-radius: 3px; }
+.legende-nom { font-weight: 500; }
+.legende-n { font-weight: 700; font-size: 1.25rem; color: var(--bleu-profond); }
+.legende-pct { color: var(--encre-douce); font-size: 0.9rem; min-width: 3.6rem; text-align: right; }
+
+.classement { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.classement li { display: grid; grid-template-columns: 1.7rem auto minmax(0, 1fr) auto; gap: 0.6rem; align-items: center; padding: 0.35rem 0.4rem; border-radius: var(--rayon-petit); transition: background var(--transition); animation: monter 0.7s var(--ease-luxe) both; }
+.classement li:nth-child(2) { animation-delay: 60ms; }
+.classement li:nth-child(3) { animation-delay: 120ms; }
+.classement li:nth-child(4) { animation-delay: 180ms; }
+.classement li:nth-child(5) { animation-delay: 240ms; }
+.classement li:hover { background: var(--bleu-voile); }
+.classement-rang { font-size: 1.5rem; font-weight: 700; color: var(--encre-douce); text-align: center; }
+.classement-premier .classement-rang { color: var(--rouge); }
+.classement-premier .avatar { box-shadow: 0 0 0 2px var(--blanc), 0 0 0 4px var(--rouge); }
+.classement-nom { display: flex; flex-direction: column; min-width: 0; text-decoration: none; color: var(--encre); line-height: 1.2; }
+.classement-nom strong { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.classement-nom span { font-size: 0.85rem; color: var(--encre-douce); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.classement-nom:hover strong { color: var(--bleu); text-decoration: underline; text-underline-offset: 3px; }
+.classement-total { font-size: 1.7rem; font-weight: 700; color: var(--bleu-profond); white-space: nowrap; line-height: 1; }
+.classement-total small { font-size: 0.8rem; font-weight: 500; color: var(--encre-douce); }
+
+/* Alertes de dossiers : photo à gauche du texte */
+.alerte { flex-direction: row; align-items: flex-start; gap: 0.6rem; }
+.alerte .avatar { margin-top: 0.1rem; }
+.alerte-texte { display: flex; flex-direction: column; min-width: 0; }
+
+@media (max-width: 1100px) {
+  .stats-grille { grid-template-columns: 1fr 1fr; }
+  .stats-colonne:first-child { grid-column: 1 / -1; }
+  .stats-colonne:nth-child(2) { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 700px) {
+  .stats-grille { grid-template-columns: 1fr; }
+  .stats-colonne + .stats-colonne { border-left: 0; padding-left: 0; border-top: 1px solid var(--filet); padding-top: 0.75rem; }
+  .anneau-resultats { width: 140px; height: 140px; }
+  .bloc-statistiques .bloc-tete .choix-segmente { width: 100%; }
+  .bloc-statistiques .choix-segmente label { flex: 1; text-align: center; }
 }
 
   </style>
@@ -2098,12 +2159,39 @@ const __documents = (() => {
       xhr.open('PUT', url);
       xhr.setRequestHeader('Content-Type', mime);
       xhr.upload.onprogress = (e) => { if (e.lengthComputable && surProgression) surProgression(e.loaded / e.total); };
-      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300
-        ? resolve()
-        : reject(new Error(`Le stockage a refusé le fichier (code ${xhr.status}).`)));
-      xhr.onerror = () => reject(new Error('Envoi impossible vers le stockage. Vérifiez votre connexion et les règles CORS du bucket R2.'));
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { resolve(); return; }
+        if (xhr.status === 403) {
+          reject(new Error('Le stockage R2 refuse la signature (code 403). Vérifiez les secrets R2_ACCESS_KEY_ID et R2_SECRET_ACCESS_KEY du Worker : ils doivent venir d’un token R2 « Object Read & Write » sur le bucket gfc-documents.'));
+          return;
+        }
+        if (xhr.status === 404) {
+          reject(new Error('Bucket introuvable (code 404). Vérifiez que R2_BUCKET_NAME du Worker vaut exactement gfc-documents.'));
+          return;
+        }
+        reject(new Error(`Le stockage a refusé le fichier (code ${xhr.status}).`));
+      };
+      xhr.onerror = () => { diagnostiquerR2(url).then((m) => reject(new Error(m))); };
       xhr.send(fichier);
     });
+  }
+
+  /**
+   * L'envoi vers R2 a échoué sans réponse lisible : on cherche si l'adresse du
+   * stockage existe (Account ID correct) ; si oui, ce sont les règles CORS.
+   */
+  async function diagnostiquerR2(url) {
+    if (!navigator.onLine) return 'Pas de connexion internet. Réessayez une fois connecté.';
+    let hote = '';
+    try { hote = new URL(url).host; } catch { /* adresse illisible */ }
+    let joignable = false;
+    try {
+      await fetch(`https://${hote}/`, { mode: 'no-cors', cache: 'no-store' });
+      joignable = true;
+    } catch { /* hôte introuvable */ }
+    return joignable
+      ? `Le stockage R2 bloque ce site (règles CORS). Dans Cloudflare › R2 › gfc-documents › Settings › CORS Policy, mettez AllowedOrigins = ["${location.origin}"], AllowedMethods = ["GET","PUT","HEAD"], AllowedHeaders = ["*"], puis Save et patientez 30 secondes.`
+      : `Stockage R2 introuvable (${hote}). Vérifiez R2_ACCOUNT_ID dans le Worker : c’est l’Account ID affiché sur la page R2 de Cloudflare (32 caractères).`;
   }
 
   /** Envoie un fichier et crée sa fiche dans la table documents. */
@@ -2395,6 +2483,173 @@ const __documents = (() => {
   return { ACCEPT, validerFichier, envoyerDocument, urlsLecture, urlLecture, changerPhoto, monterDocuments, avatar };
 })();
 
+/* ===== Module : pdf ===== */
+const __pdf = (() => {
+  /**
+   * =====================================================================
+   *  pdf.js — Outils communs pour fabriquer des PDF (jsPDF)
+   *  Utilisé par les exports et par la fiche individuelle d'un joueur.
+   *  Les bibliothèques sont chargées à la demande depuis le CDN.
+   * =====================================================================
+   */
+  const { CONFIG } = __config;
+  const { saisonCourante } = __categories;
+  const { aujourdhui, formatDateLongue } = __ui;
+
+  const URL_JSPDF = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm';
+  const URL_AUTOTABLE = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/+esm';
+
+  const MARGE = 28;
+  const HAUT_CONTENU = 92;
+
+  /**
+   * Charge jsPDF et trouve la fonction de tableau de jspdf-autotable, quelle
+   * que soit la façon dont le CDN l'expose. Sans elle, le site dessine
+   * lui-même les tableaux.
+   */
+  async function chargerOutilsPdf() {
+    const modPdf = await import(URL_JSPDF);
+    const JsPDF = [modPdf.jsPDF, modPdf.default?.jsPDF, modPdf.default].find((f) => typeof f === 'function');
+    if (!JsPDF) throw new Error('Outil PDF indisponible. Réessayez dans un instant.');
+    let autoTable = null;
+    try {
+      const modTable = await import(URL_AUTOTABLE);
+      const appliquer = [modTable.applyPlugin, modTable.default?.applyPlugin].find((f) => typeof f === 'function');
+      if (appliquer) { try { appliquer(JsPDF); } catch { /* sans gravité */ } }
+      autoTable = [modTable.autoTable, modTable.default, modTable.default?.autoTable, modTable.default?.default]
+        .find((f) => typeof f === 'function') || null;
+    } catch (err) {
+      console.warn('jspdf-autotable non chargé, tableau dessiné par le site', err);
+    }
+    if (!autoTable && typeof JsPDF.API?.autoTable === 'function') autoTable = (d, o) => d.autoTable(o);
+    return { JsPDF, autoTable };
+  }
+
+  /** En-tête (blason, titre, club, saison, date) et pied de page de chaque page. */
+  function enTeteClub(doc, titre) {
+    const largeur = doc.internal.pageSize.getWidth();
+    const hauteur = doc.internal.pageSize.getHeight();
+    try { if (window.LOGO_GFC) doc.addImage(window.LOGO_GFC, 'PNG', MARGE, 20, 52, 52); } catch { /* sans logo */ }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(15, 47, 99);
+    doc.text(titre, 90, 44);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 100, 120);
+    doc.text(`${CONFIG.CLUB_NOM} · saison ${saisonCourante()} · édité le ${formatDateLongue(aujourdhui())}`, 90, 62);
+    doc.setDrawColor(226, 20, 20); doc.setLineWidth(1.5); doc.line(MARGE, 80, 92, 80);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 128, 145);
+    doc.text('Document confidentiel — données personnelles', MARGE, hauteur - 16);
+    doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber}`, largeur - MARGE, hauteur - 16, { align: 'right' });
+  }
+
+  /**
+   * Tableau dessiné directement avec jsPDF (solution de secours) :
+   * colonnes proportionnelles au contenu, texte replié, en-tête répété
+   * sur chaque page, lignes alternées. Renvoie la position verticale finale.
+   */
+  function tableauSimple(doc, { entetes, lignes, debut, taille, surNouvellePage }) {
+    const L = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const dispo = L - MARGE * 2;
+    const poids = entetes.map((e, i) => Math.min(38, Math.max(String(e).length, ...lignes.map((l) => String(l[i] ?? '').length))) + 3);
+    const somme = poids.reduce((a, b) => a + b, 0);
+    const larg = poids.map((p) => (p / somme) * dispo);
+    const pad = 3;
+    const hl = taille * 1.2;
+    let y = debut;
+
+    const dessiner = (cellules, entete, fond) => {
+      doc.setFont('helvetica', entete ? 'bold' : 'normal');
+      doc.setFontSize(taille);
+      const textes = cellules.map((c, i) => doc.splitTextToSize(String(c ?? ''), Math.max(10, larg[i] - pad * 2)));
+      const h = Math.max(1, ...textes.map((t) => t.length)) * hl + pad * 2;
+      if (!entete && y + h > H - 40) {
+        doc.addPage();
+        surNouvellePage();
+        y = HAUT_CONTENU;
+        dessiner(entetes, true);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(taille);
+      }
+      let x = MARGE;
+      if (entete) doc.setFillColor(24, 74, 147); else if (fond) doc.setFillColor(244, 246, 251);
+      if (entete || fond) doc.rect(MARGE, y, dispo, h, 'F');
+      doc.setDrawColor(226, 230, 238); doc.setLineWidth(0.5); doc.line(MARGE, y + h, MARGE + dispo, y + h);
+      if (entete) doc.setTextColor(255, 255, 255); else doc.setTextColor(20, 32, 52);
+      textes.forEach((t, i) => { doc.text(t, x + pad, y + pad + taille * 0.85); x += larg[i]; });
+      y += h;
+    };
+
+    dessiner(entetes, true);
+    if (!lignes.length) {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(taille); doc.setTextColor(90, 100, 120);
+      doc.text('Aucune donnée.', MARGE + pad, y + pad + taille);
+      return y + taille * 2;
+    }
+    lignes.forEach((l, i) => dessiner(l, false, i % 2 === 1));
+    return y;
+  }
+
+  /**
+   * Ajoute un tableau à partir de la position « debut » et renvoie la
+   * position verticale après le tableau. L'en-tête du club est redessiné
+   * sur chaque nouvelle page.
+   */
+  function ajouterTableau(doc, autoTable, { titre, entetes, lignes, debut = HAUT_CONTENU, taille = 9 }) {
+    const propres = lignes.map((l) => l.map((c) => (c === null || c === undefined ? '' : String(c))));
+    if (autoTable) {
+      autoTable(doc, {
+        head: [entetes],
+        body: propres.length ? propres : [[{ content: 'Aucune donnée.', colSpan: entetes.length }]],
+        startY: debut,
+        margin: { top: HAUT_CONTENU, left: MARGE, right: MARGE, bottom: 36 },
+        styles: { font: 'helvetica', fontSize: taille, cellPadding: 4, overflow: 'linebreak', textColor: [20, 32, 52], lineColor: [226, 230, 238], lineWidth: 0.5 },
+        headStyles: { fillColor: [24, 74, 147], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [244, 246, 251] },
+        didDrawPage: () => enTeteClub(doc, titre),
+      });
+      const fin = doc.lastAutoTable?.finalY ?? doc.previousAutoTable?.finalY;
+      return typeof fin === 'number' ? fin : debut + 20 * (propres.length + 1);
+    }
+    return tableauSimple(doc, { entetes, lignes: propres, debut, taille, surNouvellePage: () => enTeteClub(doc, titre) });
+  }
+
+  /**
+   * Convertit une image distante (photo R2) en image JPEG utilisable dans un
+   * PDF. Renvoie null si l'image ne peut pas être lue (pas de CORS, délai…).
+   */
+  function imageEnDataUrl(url, delai = 8000) {
+    return new Promise((resolve) => {
+      if (!url) { resolve(null); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const minuterie = setTimeout(() => resolve(null), delai);
+      img.onload = () => {
+        clearTimeout(minuterie);
+        try {
+          const cote = Math.min(img.naturalWidth, img.naturalHeight);
+          const canvas = document.createElement('canvas');
+          canvas.width = 360; canvas.height = 360;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, 360, 360);
+          // Recadrage carré centré
+          ctx.drawImage(img, (img.naturalWidth - cote) / 2, (img.naturalHeight - cote) / 2, cote, cote, 0, 0, 360, 360);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => { clearTimeout(minuterie); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  /** Nom de fichier sans accents ni caractères spéciaux. */
+  function nomFichierPdf(...morceaux) {
+    return `${morceaux.join('-').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase()}.pdf`;
+  }
+  return { MARGE, HAUT_CONTENU, chargerOutilsPdf, enTeteClub, ajouterTableau, imageEnDataUrl, nomFichierPdf };
+})();
+
 /* ===== Module : people ===== */
 const __people = (() => {
   /**
@@ -2409,11 +2664,12 @@ const __people = (() => {
     categories, libelleCategorie, optionsCategories, ouvrirChangementCategorie, saisonCourante,
   } = __categories;
   const { monterDocuments, changerPhoto, urlLecture, avatar } = __documents;
+  const { chargerOutilsPdf, enTeteClub, ajouterTableau, imageEnDataUrl, nomFichierPdf, MARGE, HAUT_CONTENU } = __pdf;
   const {
     html, raw, setHtml, $, $$, notifier, confirmer, messageErreur, vide, naviguer,
     TYPES_PERSONNES, STATUTS, POSTES, FONCTIONS_STAFF, FONCTIONS_ADMIN, DOCS_PERSONNE, TYPES_DOCUMENTS,
     formatDate, formatDateHeure, age, nomComplet, normaliser, un, badgeStatut, options,
-    valeursFormulaire, antiRebond, pastilleResultat, resultatMatch, etatDossier, documentsRequis,
+    valeursFormulaire, antiRebond, pastilleResultat, resultatMatch, etatDossier, documentsRequis, telechargerBlob,
   } = __ui;
 
   const filtres = {
@@ -2636,6 +2892,7 @@ const __people = (() => {
         <div class="page-actions">
           ${ecriture ? html`<a class="bouton bouton-secondaire" href="#/${t.route}/${p.id}/modifier">Modifier</a>` : ''}
           ${type === 'player' && ecriture ? html`<button type="button" class="bouton bouton-principal" data-action="categorie">Changer de catégorie</button>` : ''}
+          ${ecriture ? html`<button type="button" class="bouton bouton-secondaire" data-action="pdf">Télécharger la fiche (PDF)</button>` : ''}
           ${ecriture ? html`<button type="button" class="bouton bouton-discret texte-danger" data-action="supprimer">Supprimer</button>` : ''}
         </div>
       </header>
@@ -2734,6 +2991,23 @@ const __people = (() => {
       }
     });
 
+    vue.querySelector('[data-action="pdf"]')?.addEventListener('click', async (e) => {
+      const b = e.currentTarget;
+      const texte = b.textContent;
+      b.disabled = true;
+      b.textContent = 'Préparation du PDF…';
+      try {
+        await telechargerFichePdf(p, type, urlPhoto);
+        notifier('Fiche téléchargée.', 'succes');
+      } catch (err) {
+        console.error(err);
+        notifier(messageErreur(err), 'erreur');
+      } finally {
+        b.disabled = false;
+        b.textContent = texte;
+      }
+    });
+
     vue.querySelector('[data-action="categorie"]')?.addEventListener('click', async () => {
       const n = await ouvrirChangementCategorie([{ ...p, category_id: d.category_id }]);
       if (n !== null) afficherFiche(vue, type, id);
@@ -2754,6 +3028,137 @@ const __people = (() => {
         notifier(messageErreur(err), 'erreur');
       }
     });
+  }
+
+  /* =====================================================================
+   *  FICHE INDIVIDUELLE EN PDF
+   *  Identité, infos sportives, parents, notes, dossier administratif,
+   *  historique des catégories et matchs joués, avec la photo.
+   * =================================================================== */
+  async function telechargerFichePdf(p, type, urlPhoto) {
+    const d = un(p.player_details) || {};
+    const [docsR, histR, profilsR, matchsR, outils, photo] = await Promise.all([
+      supabase.from('documents').select('type, date_expiration').eq('person_id', p.id),
+      type === 'player' ? supabase.from('category_history').select('*').eq('player_id', p.id).order('date', { ascending: false }) : { data: [] },
+      supabase.from('profiles').select('id, nom'),
+      type === 'player' ? supabase.from('match_players').select('*, matches(date, adversaire, domicile, score_club, score_adverse, category_id, competition)').eq('player_id', p.id) : { data: [] },
+      chargerOutilsPdf(),
+      imageEnDataUrl(urlPhoto),
+    ]);
+    for (const r of [docsR, histR, matchsR]) if (r.error) throw r.error;
+    const { JsPDF, autoTable } = outils;
+    const titre = type === 'player' ? 'Fiche joueur' : (type === 'staff' ? 'Fiche staff technique' : 'Fiche administration');
+    const doc = new JsPDF({ unit: 'pt', format: 'a4' });
+    const L = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    enTeteClub(doc, titre);
+
+    // --- En-tête de la fiche : photo, nom, catégorie, statut
+    let y = HAUT_CONTENU + 10;
+    const cote = 96;
+    if (photo) {
+      try {
+        doc.addImage(photo, 'JPEG', L - MARGE - cote, y, cote, cote);
+        doc.setDrawColor(198, 206, 220); doc.setLineWidth(0.8); doc.rect(L - MARGE - cote, y, cote, cote, 'S');
+      } catch { /* photo illisible : on continue sans */ }
+    }
+    const a = age(p.date_naissance);
+    const surtitre = type === 'player'
+      ? [d.category_id ? libelleCategorie(d.category_id) : 'Sans catégorie', d.poste, d.numero ? `n° ${d.numero}` : ''].filter(Boolean).join(' · ')
+      : (p.fonction || TYPES_PERSONNES[type].singulier);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(24); doc.setTextColor(15, 47, 99);
+    doc.text(doc.splitTextToSize(nomComplet(p), L - MARGE * 2 - cote - 16), MARGE, y + 26);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor(70, 80, 100);
+    doc.text(surtitre, MARGE, y + 52);
+    doc.text(`Statut : ${STATUTS[p.statut] || p.statut}${a !== null ? ` · ${a} ans` : ''}`, MARGE, y + 70);
+    y += cote + 20;
+
+    // --- Petits outils de mise en page
+    const place = (h) => {
+      if (y + h > H - 50) { doc.addPage(); enTeteClub(doc, titre); y = HAUT_CONTENU + 6; }
+    };
+    const section = (t) => {
+      place(48);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(24, 74, 147);
+      doc.text(t, MARGE, y + 12);
+      doc.setDrawColor(226, 20, 20); doc.setLineWidth(1); doc.line(MARGE, y + 18, MARGE + 40, y + 18);
+      y += 28;
+    };
+    const paires = (liste) => {
+      liste.forEach(([cle, valeur]) => {
+        doc.setFontSize(10.5);
+        const lignes = doc.splitTextToSize(String(valeur === null || valeur === undefined || valeur === '' ? '—' : valeur), L - MARGE * 2 - 140);
+        const h = lignes.length * 14 + 4;
+        place(h);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(90, 100, 120);
+        doc.text(cle, MARGE, y + 10);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(20, 32, 52);
+        doc.text(lignes, MARGE + 140, y + 10);
+        y += h;
+      });
+      y += 8;
+    };
+    const tableau = (entetes, lignes) => {
+      place(60);
+      y = ajouterTableau(doc, autoTable, { titre, entetes, lignes, debut: y, taille: 9 }) + 16;
+    };
+
+    // --- Contenu
+    section('Identité');
+    paires([
+      ['Date de naissance', p.date_naissance ? formatDate(p.date_naissance) : ''],
+      ['Téléphone', p.telephone], ['Email', p.email], ['Adresse', p.adresse],
+    ]);
+
+    if (type === 'player') {
+      section('Infos sportives');
+      paires([
+        ['Catégorie', d.category_id ? libelleCategorie(d.category_id) : ''], ['Poste', d.poste],
+        ['Numéro de maillot', d.numero], ['Statut', STATUTS[p.statut]],
+      ]);
+      section('Parents ou tuteurs');
+      const tuteurs = [...(p.guardians || [])].sort((x, z) => Number(z.urgence) - Number(x.urgence));
+      tableau(['Nom', 'Lien', 'Téléphone', 'Email', 'Contact d’urgence'],
+        tuteurs.map((g) => [g.nom, g.lien, g.telephone, g.email, g.urgence ? 'Oui' : '']));
+      section('Notes');
+      paires([['Allergies et remarques médicales', d.notes_medicales], ['Autres remarques', p.notes]]);
+    } else {
+      section(type === 'staff' ? 'Rôle dans le club' : 'Fonction');
+      paires([
+        ['Fonction', p.fonction],
+        ...(type === 'staff' ? [['Catégories suivies', (p.staff_categories || []).map((s) => libelleCategorie(s.category_id)).join(', ')], ['Diplômes', p.diplomes]] : []),
+        ['Statut', STATUTS[p.statut]], ['Notes', p.notes],
+      ]);
+    }
+
+    if (documentsRequis(p).length) {
+      section('Dossier administratif');
+      const libelles = { ok: 'Fourni', bientot: 'Expire bientôt', expire: 'Expiré', manquant: 'MANQUANT' };
+      tableau(['Pièce', 'État', 'Expiration'],
+        etatDossier(p, docsR.data).map((x) => [TYPES_DOCUMENTS[x.type], libelles[x.etat], x.date ? formatDate(x.date) : '']));
+    }
+
+    if (type === 'player') {
+      const noms = Object.fromEntries((profilsR.data || []).map((x) => [x.id, x.nom]));
+      section('Historique des catégories');
+      tableau(['Date', 'Ancienne catégorie', 'Nouvelle catégorie', 'Motif', 'Par'],
+        histR.data.map((h) => [formatDate(String(h.date).slice(0, 10)), h.ancienne_categorie ? libelleCategorie(h.ancienne_categorie) : '—',
+          h.nouvelle_categorie ? libelleCategorie(h.nouvelle_categorie) : '—', h.motif, noms[h.change_par] || '']));
+
+      const lignes = matchsR.data.filter((l) => l.matches).sort((x, z) => z.matches.date.localeCompare(x.matches.date));
+      const total = (k) => lignes.reduce((n, l) => n + (Number(l[k]) || 0), 0);
+      section('Statistiques');
+      tableau(['Convocations', 'Matchs joués', 'Titularisations', 'Minutes', 'Buts', 'Passes déc.', 'Jaunes', 'Rouges'],
+        [[lignes.filter((l) => l.convoque).length, lignes.filter((l) => l.minutes > 0 || l.titulaire).length,
+          lignes.filter((l) => l.titulaire).length, total('minutes'), total('buts'), total('passes'), total('jaunes'), total('rouges')]]);
+      section('Matchs joués');
+      tableau(['Date', 'Match', 'Catégorie', 'Score', 'Min.', 'Buts', 'Passes', 'Cartons'],
+        lignes.map((l) => [formatDate(l.matches.date), `${l.matches.domicile ? 'contre' : 'chez'} ${l.matches.adversaire}${l.titulaire ? ' (titulaire)' : ''}`,
+          libelleCategorie(l.matches.category_id), l.matches.score_club === null ? 'À jouer' : `${l.matches.score_club} - ${l.matches.score_adverse}`,
+          l.minutes, l.buts, l.passes, [l.jaunes ? `${l.jaunes} J` : '', l.rouges ? `${l.rouges} R` : ''].filter(Boolean).join(' ')]));
+    }
+
+    telechargerBlob(nomFichierPdf('fiche', p.prenom, p.nom), doc.output('blob'));
   }
 
   /** Liste des pièces obligatoires et leur état. */
@@ -3543,6 +3948,8 @@ const __app = (() => {
     sectionSaison, brancherSaison, sectionCategories, brancherCategories,
   } = __categories;
   const { afficherListe, afficherFiche, afficherFormulaire } = __people;
+  const { chargerOutilsPdf, enTeteClub, ajouterTableau } = __pdf;
+  const { urlsLecture, avatar } = __documents;
   const {
     afficherListeMatchs, afficherMatch, afficherFormulaireMatch, ligneMatch, matchsAvecFeuille, feuilleManquante,
   } = __matches;
@@ -3650,7 +4057,7 @@ const __app = (() => {
    * ------------------------------------------------------------------- */
   async function dossiersARegulariser() {
     const [pR, dR] = await Promise.all([
-      supabase.from('people').select('id, type, prenom, nom, date_naissance, statut, fonction, player_details(category_id)')
+      supabase.from('people').select('id, type, prenom, nom, date_naissance, statut, fonction, photo, player_details(category_id)')
         .in('type', ['player', 'staff']).neq('statut', 'parti').order('nom'),
       supabase.from('documents').select('person_id, type, date_expiration').not('person_id', 'is', null),
     ]);
@@ -3673,23 +4080,121 @@ const __app = (() => {
   /* ---------------------------------------------------------------------
    *  Tableau de bord
    * ------------------------------------------------------------------- */
+
+  /** Classement (buts ou passes) à partir des lignes de feuilles de match. */
+  function classement(lignes, cle, joueursParId, limite = 5) {
+    const totaux = new Map();
+    lignes.forEach((l) => {
+      const n = Number(l[cle]) || 0;
+      if (n > 0 && joueursParId.has(l.player_id)) {
+        const t = totaux.get(l.player_id) || { total: 0, matchs: 0 };
+        t.total += n; t.matchs += 1;
+        totaux.set(l.player_id, t);
+      }
+    });
+    const tries = [...totaux.entries()]
+      .map(([id, t]) => ({ joueur: joueursParId.get(id), total: t.total, matchs: t.matchs }))
+      .sort((a, b) => b.total - a.total || a.matchs - b.matchs || a.joueur.nom.localeCompare(b.joueur.nom));
+    // Rang partagé en cas d'égalité (1, 2, 2, 4…)
+    tries.forEach((x, i) => { x.rang = i > 0 && x.total === tries[i - 1].total ? tries[i - 1].rang : i + 1; });
+    return tries.slice(0, limite);
+  }
+
+  /** Diagramme circulaire (anneau) des résultats : victoires, nuls, défaites. */
+  function diagrammeResultats(bilan) {
+    const total = bilan.victoire + bilan.nul + bilan.defaite;
+    const parts = [
+      { cle: 'victoire', libelle: 'Victoires', n: bilan.victoire, couleur: 'var(--bleu)' },
+      { cle: 'nul', libelle: 'Nuls', n: bilan.nul, couleur: '#a9b6cb' },
+      { cle: 'defaite', libelle: 'Défaites', n: bilan.defaite, couleur: 'var(--rouge)' },
+    ];
+    const pct = (n) => (total ? Math.round((n / total) * 1000) / 10 : 0);
+    let cumul = 0;
+    const arcs = parts.filter((x) => x.n > 0).map((x) => {
+      const valeur = (x.n / total) * 100;
+      const arc = html`<circle class="arc arc-${x.cle}" cx="21" cy="21" r="15.9155" fill="none" stroke="${x.couleur}" stroke-width="6.5"
+        stroke-dasharray="${valeur.toFixed(3)} ${(100 - valeur).toFixed(3)}" stroke-dashoffset="${(25 - cumul).toFixed(3)}"><title>${x.libelle} : ${x.n}</title></circle>`;
+      cumul += valeur;
+      return arc;
+    });
+    const resume = `${bilan.victoire} victoire(s), ${bilan.nul} nul(s), ${bilan.defaite} défaite(s) sur ${total} match(s)`;
+    return html`
+      <div class="diagramme">
+        <svg class="anneau-resultats" viewBox="0 0 42 42" role="img" aria-label="${resume}">
+          <circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--bleu-voile)" stroke-width="6.5"></circle>
+          ${arcs}
+          <text x="21" y="21" class="anneau-total" text-anchor="middle" dominant-baseline="central">${total}</text>
+          <text x="21" y="27.5" class="anneau-legende-centre" text-anchor="middle">match${total > 1 ? 's' : ''}</text>
+        </svg>
+        <ul class="legende">
+          ${parts.map((x) => html`
+            <li>
+              <span class="pastille-couleur" style="background:${x.couleur}"></span>
+              <span class="legende-nom">${x.libelle}</span>
+              <span class="legende-n">${x.n}</span>
+              <span class="legende-pct">${pct(x.n).toString().replace('.', ',')} %</span>
+            </li>`)}
+        </ul>
+      </div>`;
+  }
+
+  function listeClassement(entrees, unite, urls) {
+    if (!entrees.length) return vide(`Aucun ${unite === 'but' ? 'but' : 'passe décisive'} enregistré pour l’instant.`);
+    return html`
+      <ol class="classement">
+        ${entrees.map((x) => html`
+          <li class="${x.rang === 1 ? 'classement-premier' : ''}">
+            <span class="classement-rang">${x.rang}</span>
+            ${avatar(x.joueur, urls[x.joueur.photo], 'moyen')}
+            <a class="classement-nom" href="#/joueurs/${x.joueur.id}">
+              <strong>${nomComplet(x.joueur)}</strong>
+              <span>${un(x.joueur.player_details)?.category_id ? libelleCategorie(un(x.joueur.player_details).category_id) : 'Sans catégorie'} · ${x.matchs} match${x.matchs > 1 ? 's' : ''}</span>
+            </a>
+            <span class="classement-total">${x.total}<small>${unite === 'but' ? (x.total > 1 ? ' buts' : ' but') : (x.total > 1 ? ' passes' : ' passe')}</small></span>
+          </li>`)}
+      </ol>`;
+  }
+
   async function afficherTableauDeBord(vue) {
     const auj = aujourdhui();
-    const [joueursR, autresR, aVenirR, resultatsR, passesR, dossiers, avecFeuille] = await Promise.all([
-      supabase.from('people').select('id, statut, player_details(category_id)').eq('type', 'player'),
+    const [joueursR, autresR, aVenirR, resultatsR, passesR, tousR, feuillesR, dossiers, avecFeuille] = await Promise.all([
+      supabase.from('people').select('id, prenom, nom, photo, statut, player_details(category_id)').eq('type', 'player'),
       supabase.from('people').select('id, type, statut').in('type', ['staff', 'admin']),
       supabase.from('matches').select('*').gte('date', auj).is('score_club', null).order('date').limit(5),
       supabase.from('matches').select('*').not('score_club', 'is', null).order('date', { ascending: false }).limit(5),
       supabase.from('matches').select('id, date, heure, competition, category_id, adversaire, domicile, officiel, score_club, score_adverse, lieu').eq('officiel', true).lte('date', auj).order('date', { ascending: false }),
+      supabase.from('matches').select('id, saison, score_club, score_adverse').not('score_club', 'is', null),
+      supabase.from('match_players').select('player_id, match_id, buts, passes'),
       dossiersARegulariser(),
       matchsAvecFeuille(),
     ]);
-    for (const r of [joueursR, autresR, aVenirR, resultatsR, passesR]) if (r.error) throw r.error;
+    for (const r of [joueursR, autresR, aVenirR, resultatsR, passesR, tousR, feuillesR]) if (r.error) throw r.error;
 
     const joueurs = joueursR.data.filter((j) => j.statut !== 'parti');
+    const joueursParId = new Map(joueursR.data.map((j) => [j.id, j]));
     const staff = autresR.data.filter((p) => p.type === 'staff' && p.statut !== 'parti').length;
     const admin = autresR.data.filter((p) => p.type === 'admin' && p.statut !== 'parti').length;
     const feuillesManquantes = passesR.data.filter((m) => feuilleManquante(m, avecFeuille));
+
+    // Statistiques : saison en cours ou toutes les saisons
+    const saisonDuMatch = new Map(tousR.data.map((m) => [m.id, m.saison]));
+    const statistiques = (portee) => {
+      const garder = (saison) => portee === 'tout' || saison === saisonCourante();
+      const bilan = { victoire: 0, nul: 0, defaite: 0 };
+      tousR.data.filter((m) => garder(m.saison)).forEach((m) => { bilan[resultatMatch(m)] += 1; });
+      const lignes = feuillesR.data.filter((l) => garder(saisonDuMatch.get(l.match_id)));
+      return { bilan, buteurs: classement(lignes, 'buts', joueursParId), passeurs: classement(lignes, 'passes', joueursParId) };
+    };
+    const stats = { saison: statistiques('saison'), tout: statistiques('tout') };
+
+    // Photos des joueurs affichés sur le tableau de bord (classements et dossiers)
+    const avecPhoto = [
+      ...stats.saison.buteurs, ...stats.saison.passeurs, ...stats.tout.buteurs, ...stats.tout.passeurs,
+    ].map((x) => x.joueur.photo).concat(dossiers.map((x) => x.p.photo)).filter(Boolean);
+    let urls = {};
+    if (avecPhoto.length) {
+      try { urls = await urlsLecture([...new Set(avecPhoto)]); } catch { urls = {}; }
+    }
 
     const parCategorie = new Map();
     joueurs.forEach((j) => {
@@ -3713,6 +4218,25 @@ const __app = (() => {
     const lien = (p) => `#/${TYPES_PERSONNES[p.type].route}/${p.id}`;
     const noms = (liste) => liste.map((x) => TYPES_DOCUMENTS[x.type]).join(', ');
 
+    const blocStatistiques = (portee) => {
+      const s = stats[portee];
+      return html`
+        <div class="stats-grille">
+          <div class="stats-colonne">
+            <h3>Résultats</h3>
+            ${diagrammeResultats(s.bilan)}
+          </div>
+          <div class="stats-colonne">
+            <h3>Meilleurs buteurs</h3>
+            ${listeClassement(s.buteurs, 'but', urls)}
+          </div>
+          <div class="stats-colonne">
+            <h3>Meilleurs passeurs</h3>
+            ${listeClassement(s.passeurs, 'passe', urls)}
+          </div>
+        </div>`;
+    };
+
     setHtml(vue, html`
       <header class="page-tete">
         <div>
@@ -3732,6 +4256,17 @@ const __app = (() => {
           <p class="texte-doux">Obligatoire pour chaque match officiel joué.</p>
           <ul class="liste-matchs">${feuillesManquantes.map((m) => ligneMatch(m, avecFeuille))}</ul>
         </section>` : ''}
+
+      <section class="bloc bloc-statistiques">
+        <div class="bloc-tete">
+          <h2>Statistiques</h2>
+          <div class="choix-segmente" role="radiogroup" aria-label="Période des statistiques">
+            <label><input type="radio" name="portee-stats" value="saison" checked><span>Saison ${saisonCourante()}</span></label>
+            <label><input type="radio" name="portee-stats" value="tout"><span>Toutes les saisons</span></label>
+          </div>
+        </div>
+        <div data-statistiques>${blocStatistiques('saison')}</div>
+      </section>
 
       <div class="tdb">
         <section class="bloc tdb-effectif">
@@ -3766,11 +4301,14 @@ const __app = (() => {
             <ul class="alertes" data-alertes>
               ${dossiers.map((x, i) => html`
                 <li class="alerte ${x.manquants.length || x.expires.length ? 'alerte-manquant' : 'alerte-bientot'}" ${i >= LIMITE ? raw('hidden') : ''}>
-                  <a href="${lien(x.p)}">${nomComplet(x.p)}</a>
-                  <span class="alerte-qui">${x.p.type === 'player' ? `Joueur${un(x.p.player_details)?.category_id ? ` · ${libelleCategorie(un(x.p.player_details).category_id)}` : ''}` : `Staff technique${x.p.fonction ? ` · ${x.p.fonction}` : ''}`}</span>
-                  ${x.manquants.length ? html`<span class="alerte-detail"><strong>Manquant :</strong> ${noms(x.manquants)}</span>` : ''}
-                  ${x.expires.length ? html`<span class="alerte-detail"><strong>Expiré :</strong> ${noms(x.expires)}</span>` : ''}
-                  ${x.bientot.length ? html`<span class="alerte-detail alerte-detail-doux"><strong>Expire bientôt :</strong> ${noms(x.bientot)}</span>` : ''}
+                  ${avatar(x.p, urls[x.p.photo], 'moyen')}
+                  <div class="alerte-texte">
+                    <a href="${lien(x.p)}">${nomComplet(x.p)}</a>
+                    <span class="alerte-qui">${x.p.type === 'player' ? `Joueur${un(x.p.player_details)?.category_id ? ` · ${libelleCategorie(un(x.p.player_details).category_id)}` : ''}` : `Staff technique${x.p.fonction ? ` · ${x.p.fonction}` : ''}`}</span>
+                    ${x.manquants.length ? html`<span class="alerte-detail"><strong>Manquant :</strong> ${noms(x.manquants)}</span>` : ''}
+                    ${x.expires.length ? html`<span class="alerte-detail"><strong>Expiré :</strong> ${noms(x.expires)}</span>` : ''}
+                    ${x.bientot.length ? html`<span class="alerte-detail alerte-detail-doux"><strong>Expire bientôt :</strong> ${noms(x.bientot)}</span>` : ''}
+                  </div>
                 </li>`)}
             </ul>
             ${dossiers.length > LIMITE ? html`<button type="button" class="bouton bouton-discret bouton-petit" data-voir-tout>Voir les ${dossiers.length} dossiers</button>` : ''}`
@@ -3788,6 +4326,9 @@ const __app = (() => {
         </section>
       </div>`);
 
+    vue.querySelectorAll('input[name="portee-stats"]').forEach((r) => r.addEventListener('change', () => {
+      setHtml(vue.querySelector('[data-statistiques]'), blocStatistiques(r.value));
+    }));
     vue.querySelector('[data-voir-tout]')?.addEventListener('click', (e) => {
       vue.querySelectorAll('[data-alertes] li[hidden]').forEach((li) => { li.hidden = false; });
       e.currentTarget.remove();
@@ -3829,8 +4370,6 @@ const __app = (() => {
    *  Exports PDF et Excel
    * ------------------------------------------------------------------- */
   const URL_XLSX = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm';
-  const URL_JSPDF = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm';
-  const URL_AUTOTABLE = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/+esm';
 
   /** Lit toutes les lignes d'une table (1000 lignes maximum par requête). */
   async function toutesLesLignes(table, colonnes, filtre = (q) => q) {
@@ -3979,115 +4518,14 @@ const __app = (() => {
     telechargerBlob(nomFichier, new Blob([octets], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   }
 
-  /**
-   * Trouve la fonction de tableau de jspdf-autotable, quelle que soit la
-   * façon dont le CDN l'expose (export nommé, export par défaut, objet
-   * imbriqué, ou méthode ajoutée à jsPDF).
-   */
-  async function chargerOutilsPdf() {
-    const modPdf = await import(URL_JSPDF);
-    const JsPDF = [modPdf.jsPDF, modPdf.default?.jsPDF, modPdf.default].find((f) => typeof f === 'function');
-    if (!JsPDF) throw new Error('Outil PDF indisponible. Réessayez dans un instant.');
-    let autoTable = null;
-    try {
-      const modTable = await import(URL_AUTOTABLE);
-      const appliquer = [modTable.applyPlugin, modTable.default?.applyPlugin].find((f) => typeof f === 'function');
-      if (appliquer) { try { appliquer(JsPDF); } catch { /* sans gravité */ } }
-      autoTable = [modTable.autoTable, modTable.default, modTable.default?.autoTable, modTable.default?.default]
-        .find((f) => typeof f === 'function') || null;
-    } catch (err) {
-      console.warn('jspdf-autotable non chargé, tableau dessiné par le site', err);
-    }
-    if (!autoTable && typeof JsPDF.API?.autoTable === 'function') autoTable = (d, o) => d.autoTable(o);
-    return { JsPDF, autoTable };
-  }
-
-  /**
-   * Tableau dessiné directement avec jsPDF (solution de secours) :
-   * colonnes proportionnelles au contenu, texte replié, en-tête répété
-   * sur chaque page, lignes alternées.
-   */
-  function tableauSimple(doc, { entetes, lignes, haut, marge, taille, surNouvellePage }) {
-    const L = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const dispo = L - marge * 2;
-    const poids = entetes.map((e, i) => Math.min(38, Math.max(String(e).length, ...lignes.map((l) => String(l[i] ?? '').length))) + 3);
-    const somme = poids.reduce((a, b) => a + b, 0);
-    const larg = poids.map((p) => (p / somme) * dispo);
-    const pad = 3;
-    const hl = taille * 1.2;
-    let y = haut;
-
-    const dessiner = (cellules, entete, fond) => {
-      doc.setFont('helvetica', entete ? 'bold' : 'normal');
-      doc.setFontSize(taille);
-      const textes = cellules.map((c, i) => doc.splitTextToSize(String(c ?? ''), Math.max(10, larg[i] - pad * 2)));
-      const h = Math.max(1, ...textes.map((t) => t.length)) * hl + pad * 2;
-      if (!entete && y + h > H - 40) {
-        doc.addPage();
-        surNouvellePage();
-        y = haut;
-        dessiner(entetes, true);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(taille);
-      }
-      let x = marge;
-      if (entete) doc.setFillColor(24, 74, 147); else if (fond) doc.setFillColor(244, 246, 251);
-      if (entete || fond) doc.rect(marge, y, dispo, h, 'F');
-      doc.setDrawColor(226, 230, 238); doc.setLineWidth(0.5); doc.line(marge, y + h, marge + dispo, y + h);
-      if (entete) doc.setTextColor(255, 255, 255); else doc.setTextColor(20, 32, 52);
-      textes.forEach((t, i) => { doc.text(t, x + pad, y + pad + taille * 0.85); x += larg[i]; });
-      y += h;
-    };
-
-    dessiner(entetes, true);
-    if (!lignes.length) {
-      doc.setFont('helvetica', 'italic'); doc.setFontSize(taille); doc.setTextColor(90, 100, 120);
-      doc.text('Aucune donnée.', marge + pad, y + pad + taille);
-      return;
-    }
-    lignes.forEach((l, i) => dessiner(l, false, i % 2 === 1));
-  }
-
   /** PDF : en-tête du club, un tableau par jeu de données. */
   async function versPdf(jeux, nomFichier) {
     const { JsPDF, autoTable } = await chargerOutilsPdf();
     const doc = new JsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-    const largeur = doc.internal.pageSize.getWidth();
-    const hauteur = doc.internal.pageSize.getHeight();
-    const dateEdition = formatDateLongue(aujourdhui());
-
-    const enTete = (titre) => {
-      try { if (window.LOGO_GFC) doc.addImage(window.LOGO_GFC, 'PNG', 28, 20, 52, 52); } catch { /* sans logo */ }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(15, 47, 99);
-      doc.text(titre, 90, 44);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 100, 120);
-      doc.text(`${CONFIG.CLUB_NOM} · saison ${saisonCourante()} · édité le ${dateEdition}`, 90, 62);
-      doc.setDrawColor(226, 20, 20); doc.setLineWidth(1.5); doc.line(28, 80, 92, 80);
-      doc.setFontSize(8); doc.setTextColor(120, 128, 145);
-      doc.text('Document confidentiel — données personnelles', 28, hauteur - 16);
-      doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber}`, largeur - 28, hauteur - 16, { align: 'right' });
-    };
-
     jeux.forEach((j, i) => {
       if (i > 0) doc.addPage();
-      const lignes = j.lignes.map((l) => l.map((c) => String(propre(c))));
-      const taille = j.entetes.length > 10 ? 7.5 : 9;
-      if (autoTable) {
-        autoTable(doc, {
-          head: [j.entetes],
-          body: lignes.length ? lignes : [[{ content: 'Aucune donnée.', colSpan: j.entetes.length }]],
-          startY: 92,
-          margin: { top: 92, left: 28, right: 28, bottom: 36 },
-          styles: { font: 'helvetica', fontSize: taille, cellPadding: 4, overflow: 'linebreak', textColor: [20, 32, 52], lineColor: [226, 230, 238], lineWidth: 0.5 },
-          headStyles: { fillColor: [24, 74, 147], textColor: 255, fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [244, 246, 251] },
-          didDrawPage: () => enTete(j.titre),
-        });
-      } else {
-        enTete(j.titre);
-        tableauSimple(doc, { entetes: j.entetes, lignes, haut: 92, marge: 28, taille, surNouvellePage: () => enTete(j.titre) });
-      }
+      enTeteClub(doc, j.titre);
+      ajouterTableau(doc, autoTable, { titre: j.titre, entetes: j.entetes, lignes: j.lignes, taille: j.entetes.length > 10 ? 7.5 : 9 });
     });
     telechargerBlob(nomFichier, doc.output('blob'));
   }
