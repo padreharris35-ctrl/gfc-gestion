@@ -1660,26 +1660,45 @@ const __auth = (() => {
   /* ---------------------------------------------------------------------
    *  Appel du Cloudflare Worker (jeton de session envoyé à chaque appel)
    * ------------------------------------------------------------------- */
-  async function appelWorker(chemin, corps = {}) {
+  /** Jeton de connexion à jour (renouvelé s'il expire dans moins d'une minute, ou si on le force). */
+  async function jetonAJour(forcer = false) {
     const { data } = await supabase.auth.getSession();
-    const jeton = data.session?.access_token;
-    if (!jeton) throw new Error('Session expirée. Reconnectez-vous.');
-
-    const base = CONFIG.WORKER_URL.trim().replace(/\/+$/, '').replace(/\/sante$/, '');
-    let res;
-    try {
-      res = await fetch(`${base}${chemin}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jeton}` },
-        body: JSON.stringify(corps),
-      });
-    } catch {
-      throw new Error(await diagnostiquerWorker(base));
+    let session = data.session;
+    if (session && (forcer || !session.expires_at || session.expires_at * 1000 < Date.now() + 60000)) {
+      const r = await supabase.auth.refreshSession();
+      if (r.data?.session) session = r.data.session;
     }
-    let donnees = {};
-    try { donnees = await res.json(); } catch { /* réponse vide */ }
-    if (!res.ok) throw new Error(donnees.erreur || `Erreur du service de fichiers (code ${res.status}).`);
-    return donnees;
+    return session?.access_token || null;
+  }
+
+  async function appelWorker(chemin, corps = {}) {
+    const base = CONFIG.WORKER_URL.trim().replace(/\/+$/, '').replace(/\/sante$/, '');
+    for (let essai = 0; essai < 2; essai += 1) {
+      const jeton = await jetonAJour(essai > 0);
+      if (!jeton) throw new Error('Session expirée. Reconnectez-vous.');
+      let res;
+      try {
+        res = await fetch(`${base}${chemin}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jeton}` },
+          body: JSON.stringify(corps),
+        });
+      } catch {
+        throw new Error(await diagnostiquerWorker(base));
+      }
+      let donnees = {};
+      try { donnees = await res.json(); } catch { /* réponse vide */ }
+      if (res.ok) return donnees;
+      if (res.status === 401 && essai === 0) continue; // on renouvelle la connexion et on réessaie une fois
+      if (res.status === 401) {
+        throw new Error("Le service de fichiers refuse votre connexion alors qu'elle vient d'être renouvelée. "
+          + 'Cause la plus fréquente : le Worker est réglé sur un autre projet Supabase que le site. '
+          + 'Dans Cloudflare › Worker › Settings › Variables and Secrets, SUPABASE_URL doit être exactement l’adresse de la ligne 19 de index.html, '
+          + 'et SUPABASE_SERVICE_ROLE_KEY la clé secrète de ce même projet. Puis Deploy.'
+          + (donnees.erreur && !/Session expir/i.test(donnees.erreur) ? ` (Détail : ${donnees.erreur})` : ''));
+      }
+      throw new Error(donnees.erreur || `Erreur du service de fichiers (code ${res.status}).`);
+    }
   }
 
   /**
