@@ -16,9 +16,9 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
-      SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
-      WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
+      SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+      SUPABASE_ANON_KEY: 'VOTRE_CLE_ANON_PUBLIQUE',
+      WORKER_URL: 'https://gfc-fichiers.VOTRE-SOUS-DOMAINE.workers.dev',
     };
     /* ================ FIN DES RÉGLAGES — ne rien modifier en dessous ================ */
   </script>
@@ -2811,11 +2811,30 @@ const __pdf = (() => {
    * Convertit une image distante (photo R2) en image JPEG utilisable dans un
    * PDF. Renvoie null si l'image ne peut pas être lue (pas de CORS, délai…).
    */
-  function imageEnDataUrl(url, delai = 8000) {
+  async function imageEnDataUrl(url, delai = 8000) {
+    if (!url) return null;
+    // 1) Téléchargement direct de l'image (sans passer par la mémoire du navigateur)
+    try {
+      const ctrl = new AbortController();
+      const minuterie = setTimeout(() => ctrl.abort(), delai);
+      const res = await fetch(url, { cache: 'no-store', mode: 'cors', signal: ctrl.signal });
+      clearTimeout(minuterie);
+      if (res.ok) {
+        const local = URL.createObjectURL(await res.blob());
+        try {
+          const r = await imageVersJpeg(local, delai, false);
+          if (r) return r;
+        } finally { URL.revokeObjectURL(local); }
+      }
+    } catch { /* on tente la seconde méthode */ }
+    // 2) Chargement classique de l'image
+    return imageVersJpeg(url, delai, true);
+  }
+
+  function imageVersJpeg(url, delai, croise) {
     return new Promise((resolve) => {
-      if (!url) { resolve(null); return; }
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      if (croise) img.crossOrigin = 'anonymous';
       const minuterie = setTimeout(() => resolve(null), delai);
       img.onload = () => {
         clearTimeout(minuterie);
@@ -3202,8 +3221,11 @@ const __people = (() => {
       b.disabled = true;
       b.textContent = 'Préparation du PDF…';
       try {
-        await telechargerFichePdf(p, type, urlPhoto);
+        const avecPhoto = await telechargerFichePdf(p, type, urlPhoto);
         notifier('Fiche téléchargée.', 'succes');
+        if (avecPhoto === false) {
+          notifier("La photo n'a pas pu être ajoutée au PDF. Si c'est une photo iPhone (HEIC), remplacez-la par un JPEG ; sinon, vérifiez que la règle CORS du bucket R2 autorise GET pour le site.", 'erreur');
+        }
       } catch (err) {
         console.error(err);
         notifier(messageErreur(err), 'erreur');
@@ -3240,8 +3262,25 @@ const __people = (() => {
    *  Identité, infos sportives, parents, notes, dossier administratif,
    *  historique des catégories et matchs joués, avec la photo.
    * =================================================================== */
-  async function telechargerFichePdf(p, type, urlPhoto) {
+  /** Lien tout neuf vers la photo de la fiche (ou, à défaut, la dernière « Photo de profil » déposée). */
+  async function urlPhotoFraiche(p) {
+    let cle = p.photo;
+    if (!cle) {
+      const { data } = await supabase.from('documents').select('cle_r2').eq('person_id', p.id)
+        .eq('type', 'photo_profil').order('created_at', { ascending: false }).limit(1);
+      cle = data?.[0]?.cle_r2;
+    }
+    if (!cle) return null;
+    try {
+      const { urls } = await appelWorker('/download-urls', { keys: [cle], download: true });
+      return urls?.[cle] || null;
+    } catch { return null; }
+  }
+
+  async function telechargerFichePdf(p, type, urlPhotoAffichee) {
     const d = un(p.player_details) || {};
+    const urlPhoto = (await urlPhotoFraiche(p)) || urlPhotoAffichee;
+    const photoAttendue = !!urlPhoto;
     const [docsR, histR, profilsR, matchsR, outils, photo] = await Promise.all([
       supabase.from('documents').select('type, date_expiration').eq('person_id', p.id),
       type === 'player' ? supabase.from('category_history').select('*').eq('player_id', p.id).order('date', { ascending: false }) : { data: [] },
@@ -3365,6 +3404,7 @@ const __people = (() => {
     }
 
     telechargerBlob(nomFichierPdf('fiche', p.prenom, p.nom), doc.output('blob'));
+    return photoAttendue ? !!photo : null;
   }
 
   /** Liste des pièces obligatoires et leur état. */
