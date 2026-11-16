@@ -823,6 +823,63 @@ body.sortie { opacity: 0; }
   .bloc-statistiques .choix-segmente label { flex: 1; text-align: center; }
 }
 
+/* =====================================================================
+   TABLEAU DE BORD : six rubriques de même taille et même épaisseur
+   ===================================================================== */
+.tdb {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;              /* toutes les rangées ont la même hauteur */
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.tdb > .carte {
+  display: flex; flex-direction: column;
+  min-height: 330px;
+  border-top: 3px solid var(--bleu);  /* même épaisseur pour toutes les rubriques */
+}
+.tdb > .carte.tdb-alertes { border-top-color: var(--rouge); }
+.carte-corps { flex: 1; min-width: 0; }
+.carte .bloc-tete { min-height: 2.1rem; }
+.lien-carte { margin-top: 0.6rem; align-self: flex-start; font-weight: 700; font-size: 0.98rem; text-decoration: none; }
+.lien-carte::after { content: ' →'; }
+.lien-carte:hover { text-decoration: underline; }
+.sous-rubrique { font-size: 1.05rem; color: var(--encre-douce); font-style: italic; font-weight: 500; margin: 0.15rem 0 0.2rem; }
+.sous-rubrique + .liste-matchs { margin-bottom: 0.35rem; }
+.liste-matchs-compacte .ligne-match { padding: 0.35rem 0.3rem; grid-template-columns: 3.1rem minmax(0, 1fr) auto; gap: 0.55rem; }
+.liste-matchs-compacte .lm-jour { font-size: 1.5rem; }
+.liste-matchs-compacte .lm-meta { font-size: 0.82rem; }
+.liste-matchs-compacte .affiche { font-size: 1rem; }
+.liste-matchs-compacte .score { font-size: 1.2rem; }
+p.chiffre-note { margin: -0.4rem 0 0.7rem; font-size: 0.98rem; color: var(--encre-douce); }
+.tdb .chiffres { gap: 0.5rem 1.6rem; margin-bottom: 0.7rem; }
+.tdb .chiffre-principal dd { font-size: 3.4rem; }
+.tdb .diagramme { justify-content: center; }
+.select-compact { width: auto !important; min-height: 36px !important; padding: 0.25rem 0.6rem !important; font-size: 0.95rem !important; }
+.page-actions .choix-segmente { align-self: center; }
+.cc-nouvelle { display: grid; gap: 0.5rem; }
+
+@media (max-width: 1200px) {
+  .tdb { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .tdb { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .tdb > .carte { min-height: 0; }
+  .page-actions .choix-segmente { width: 100%; }
+  .page-actions .choix-segmente label { flex: 1; text-align: center; }
+}
+
+/* Rubriques compactes pour garder des cartes de même taille sans vide */
+.tdb .alerte { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.tdb .alerte + .alerte { margin-top: 0.2rem; }
+.tdb .alerte-detail { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.tdb .alerte-qui { font-size: 0.85rem; }
+.tdb .resume-alertes { margin-bottom: 0.4rem; }
+.liste-matchs-compacte .lm-meta, .liste-matchs-compacte .affiche { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.liste-matchs-compacte .lm-alerte { display: none; }
+.tdb > .carte { min-height: 0; }
+.tdb .classement li { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+
   </style>
 </head>
 <body>
@@ -1149,10 +1206,10 @@ const __ui = (() => {
     return Array.isArray(x) ? (x[0] || null) : (x || null);
   }
 
-  /** Saison par défaut selon la date (une saison commence en août). */
+  /** Saison par défaut selon la date (une saison va du 1er juillet au 30 juin). */
   function saisonParDefaut(d = new Date()) {
     const a = d.getFullYear();
-    return d.getMonth() >= 7 ? `${a}-${a + 1}` : `${a - 1}-${a}`;
+    return d.getMonth() >= 6 ? `${a}-${a + 1}` : `${a - 1}-${a}`;
   }
 
   function resultatMatch(m) {
@@ -1821,26 +1878,40 @@ const __auth = (() => {
 const __categories = (() => {
   /**
    * =====================================================================
-   *  categories.js — Catégories, saison en cours, changement de catégorie
+   *  categories.js — Saisons, catégories, changement de catégorie
+   *
+   *  Une saison va du 1er juillet au 30 juin de l'année suivante. La
+   *  saison en cours se déduit automatiquement de la date du jour.
+   *  Chaque catégorie appartient à une saison (ex. « U15 · 2026-2027 »).
+   *  Dans les formulaires, on choisit d'abord la saison, puis la catégorie.
    * =====================================================================
    */
   const { supabase, estAdmin } = __auth;
   const {
     html, raw, setHtml, notifier, modale, confirmer, messageErreur, chargement, vide,
-    nomComplet, saisonParDefaut, valeursFormulaire,
+    nomComplet, saisonParDefaut, valeursFormulaire, aujourdhui, formatDate,
   } = __ui;
 
   let cacheCategories = [];
+  let cacheSaisons = [];
   let reglages = { saison_courante: saisonParDefaut() };
 
+  const CATEGORIES_DU_CLUB = [['U10', 1], ['U12', 2], ['U15', 3], ['U17', 4], ['Séniors', 5]];
+
+  /* ---------------------------------------------------------------------
+   *  Données
+   * ------------------------------------------------------------------- */
   async function chargerReglages() {
-    const { data, error } = await supabase.from('club_settings').select('saison_courante').eq('id', 1).maybeSingle();
-    if (error) throw error;
-    if (data) reglages = data;
+    const [r1, r2] = await Promise.all([
+      supabase.from('club_settings').select('saison_courante').eq('id', 1).maybeSingle(),
+      supabase.from('saisons').select('code, date_debut, date_fin').order('code'),
+    ]);
+    if (r1.error) throw r1.error;
+    if (r1.data) reglages = r1.data;
+    // Si schema.sql n'a pas encore été relancé, la table saisons n'existe pas : on continue sans.
+    cacheSaisons = r2.error ? [] : r2.data;
     return reglages;
   }
-
-  const saisonCourante = () => reglages.saison_courante;
 
   async function chargerCategories() {
     const { data, error } = await supabase.from('categories').select('id, nom, saison, ordre')
@@ -1850,8 +1921,30 @@ const __categories = (() => {
     return data;
   }
 
+  const saisons = () => cacheSaisons;
   const categories = () => cacheCategories;
   const categorie = (id) => cacheCategories.find((c) => c.id === id) || null;
+
+  /** Saison en cours : celle qui contient la date du jour (1er juillet → 30 juin). */
+  function saisonCourante() {
+    const auj = aujourdhui();
+    const s = cacheSaisons.find((x) => x.date_debut <= auj && auj <= x.date_fin);
+    return s ? s.code : saisonParDefaut();
+  }
+
+  function saisonSuivante(code = saisonCourante()) {
+    const a = Number(String(code).slice(0, 4));
+    return `${a + 1}-${a + 2}`;
+  }
+
+  /** Dates d'une saison, par ex. « du 1er juillet 2026 au 30 juin 2027 ». */
+  function datesSaison(code) {
+    const s = cacheSaisons.find((x) => x.code === code);
+    const a = Number(String(code).slice(0, 4));
+    const debut = s ? s.date_debut : `${a}-07-01`;
+    const fin = s ? s.date_fin : `${a + 1}-06-30`;
+    return `du ${formatDate(debut).replace(/^1 /, '1er ')} au ${formatDate(fin)}`;
+  }
 
   function libelleCategorie(id) {
     const c = categorie(id);
@@ -1859,29 +1952,73 @@ const __categories = (() => {
     return c.saison === saisonCourante() ? c.nom : `${c.nom} (${c.saison})`;
   }
 
-  function saisonsConnues(extra = []) {
-    return [...new Set([saisonCourante(), ...cacheCategories.map((c) => c.saison), ...extra])]
-      .filter(Boolean).sort().reverse();
+  /** Toutes les saisons enregistrées (table saisons + catégories existantes), de la plus ancienne à la plus récente. */
+  function toutesLesSaisons(extra = []) {
+    return [...new Set([saisonCourante(), ...cacheSaisons.map((s) => s.code), ...cacheCategories.map((c) => c.saison), ...extra])]
+      .filter(Boolean).sort();
   }
 
-  function optionsCategories(selection, { vide: libelleVide, saisonSeule } = {}) {
+  /** Saisons utiles pour les filtres : jusqu'à la saison suivante, plus celles demandées. */
+  function saisonsConnues(extra = []) {
+    const limite = saisonSuivante();
+    return toutesLesSaisons(extra).filter((s) => s <= limite || extra.includes(s)).reverse();
+  }
+
+  /**
+   * Options <select> des catégories.
+   * - saisons : liste des saisons à proposer (par défaut : la saison en
+   *   cours et celle de la catégorie sélectionnée).
+   */
+  function optionsCategories(selection, { vide: libelleVide, saisons: liste } = {}) {
+    const voulues = new Set(liste && liste.length ? liste : [saisonCourante()]);
+    const sel = categorie(selection);
+    if (sel) voulues.add(sel.saison);
     const parSaison = new Map();
     for (const c of cacheCategories) {
-      if (saisonSeule && c.saison !== saisonSeule) continue;
+      if (!voulues.has(c.saison)) continue;
       if (!parSaison.has(c.saison)) parSaison.set(c.saison, []);
       parSaison.get(c.saison).push(c);
     }
-    const saisons = [...parSaison.keys()].sort((a, b) => {
+    const ordre = [...parSaison.keys()].sort((a, b) => {
       if (a === saisonCourante()) return -1;
       if (b === saisonCourante()) return 1;
       return b.localeCompare(a);
     });
     return html`
       ${libelleVide !== undefined ? html`<option value="">${libelleVide}</option>` : ''}
-      ${saisons.map((s) => html`
+      ${ordre.map((s) => html`
         <optgroup label="Saison ${s}${s === saisonCourante() ? ' (en cours)' : ''}">
-          ${parSaison.get(s).map((c) => html`<option value="${c.id}" ${c.id === selection ? raw('selected') : ''}>${c.nom}</option>`)}
+          ${parSaison.get(s).sort((a, b) => a.ordre - b.ordre).map((c) => html`<option value="${c.id}" ${c.id === selection ? raw('selected') : ''}>${c.nom}</option>`)}
         </optgroup>`)}`;
+  }
+
+  /** Options <select> des saisons (la saison en cours est signalée). */
+  function optionsSaisons(selection = saisonCourante(), extra = []) {
+    return html`${toutesLesSaisons(extra).map((s) => html`
+      <option value="${s}" ${s === selection ? raw('selected') : ''}>${s}${s === saisonCourante() ? ' (en cours)' : ''}</option>`)}`;
+  }
+
+  /**
+   * Deux champs liés : la saison, puis les catégories de cette saison.
+   * prefixe : préfixe des identifiants (ex. « m » → #m-saison, #m-categorie).
+   */
+  function champsSaisonCategorie({ prefixe, saison, categorieId, nomSaison = 'saison', nomCategorie = 'category_id', libelleSaison = 'Saison', libelleCat = 'Catégorie' }) {
+    const s = categorie(categorieId)?.saison || saison || saisonCourante();
+    return html`
+      <div class="champ"><label for="${prefixe}-saison">${libelleSaison}</label>
+        <select id="${prefixe}-saison" name="${nomSaison}" data-saison-liee="${prefixe}" required>${optionsSaisons(s)}</select></div>
+      <div class="champ"><label for="${prefixe}-categorie">${libelleCat}</label>
+        <select id="${prefixe}-categorie" name="${nomCategorie}" required>${optionsCategories(categorieId, { vide: 'Choisir…', saisons: [s] })}</select></div>`;
+  }
+
+  /** À appeler après l'affichage : la liste des catégories suit la saison choisie. */
+  function brancherSaisonCategorie(racine) {
+    racine.querySelectorAll('[data-saison-liee]').forEach((sel) => {
+      const cible = racine.querySelector(`#${sel.dataset.saisonLiee}-categorie`);
+      sel.addEventListener('change', () => {
+        setHtml(cible, optionsCategories('', { vide: 'Choisir…', saisons: [sel.value] }));
+      });
+    });
   }
 
   /* ---------------------------------------------------------------------
@@ -1905,9 +2042,8 @@ const __categories = (() => {
             <span class="cc-valeur">${libelleActuel}</span>
           </div>
           <span class="cc-fleche" aria-hidden="true">${raw('&rarr;')}</span>
-          <div class="cc-colonne">
-            <label class="cc-libelle" for="cc-nouvelle">Nouvelle catégorie</label>
-            <select id="cc-nouvelle" name="categorie" required>${optionsCategories('', { vide: 'Choisir…' })}</select>
+          <div class="cc-colonne cc-nouvelle">
+            ${champsSaisonCategorie({ prefixe: 'cc', libelleSaison: 'Saison', libelleCat: 'Nouvelle catégorie', nomCategorie: 'categorie' })}
           </div>
         </div>
         ${joueurs.length > 1 ? html`
@@ -1919,7 +2055,8 @@ const __categories = (() => {
           <input id="cc-motif" name="motif" list="cc-motifs" maxlength="300" placeholder="Surclassement, fin de saison…">
           <datalist id="cc-motifs">${MOTIFS.map((m) => html`<option value="${m}">`)}</datalist>
         </div>
-        <p class="aide">Tout le dossier suit le joueur : parents, documents, photos et historique. Les matchs déjà joués restent rattachés à leur catégorie d’origine.</p>`,
+        <p class="aide">Pour un passage de fin de saison, choisissez la saison suivante puis la catégorie. Tout le dossier suit le joueur ; les matchs déjà joués restent rattachés à leur catégorie d’origine.</p>`,
+      onMonter: (dlg) => brancherSaisonCategorie(dlg),
       onValider: async (form) => {
         const v = valeursFormulaire(form);
         const { data, error } = await supabase.rpc('change_player_category', {
@@ -1937,40 +2074,53 @@ const __categories = (() => {
   }
 
   /* ---------------------------------------------------------------------
-   *  Paramètres du site (secrétaire général)
+   *  Paramètres du site (secrétaire général) : saisons et catégories
    * ------------------------------------------------------------------- */
   function sectionSaison() {
+    const liste = toutesLesSaisons();
     return html`
       <section class="bloc" id="bloc-saison">
-        <h2>Saison en cours</h2>
-        <p class="texte-doux">Valeur par défaut pour les matchs et les filtres.</p>
-        ${estAdmin() ? html`
-          <form id="form-saison" class="formulaire-ligne" novalidate>
-            <div class="champ">
-              <label for="saison-courante">Saison</label>
-              <input id="saison-courante" name="saison" value="${saisonCourante()}" pattern="\\d{4}-\\d{4}" placeholder="2026-2027" required>
-            </div>
-            <button type="submit" class="bouton bouton-secondaire">Enregistrer</button>
-          </form>` : html`<p class="valeur-forte">${saisonCourante()}</p>`}
+        <div class="bloc-tete">
+          <h2>Saisons</h2>
+          ${estAdmin() ? html`<button type="button" class="bouton bouton-secondaire bouton-petit" id="btn-nouvelle-saison">Ajouter une saison</button>` : ''}
+        </div>
+        <p class="valeur-forte">Saison en cours : ${saisonCourante()}</p>
+        <p class="texte-doux">${datesSaison(saisonCourante())}. Une saison va du 1er juillet au 30 juin : la saison en cours change automatiquement chaque 1er juillet.</p>
+        <p class="texte-doux">Saisons enregistrées : <strong>${liste[0]}</strong> à <strong>${liste[liste.length - 1]}</strong> (${liste.length} saisons), chacune avec les catégories U10, U12, U15, U17 et Séniors.</p>
       </section>`;
   }
 
   function brancherSaison(racine, apresChangement) {
-    const form = racine.querySelector('#form-saison');
-    if (!form) return;
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const s = form.saison.value.trim();
-      const m = /^(\d{4})-(\d{4})$/.exec(s);
-      if (!m || Number(m[2]) !== Number(m[1]) + 1) {
-        notifier('Format attendu : deux années qui se suivent, par exemple 2026-2027.', 'erreur');
-        return;
+    racine.querySelector('#btn-nouvelle-saison')?.addEventListener('click', async () => {
+      const ok = await modale({
+        titre: 'Ajouter une saison',
+        libelleValider: 'Ajouter la saison',
+        corps: html`
+          <div class="champ">
+            <label for="ns-annee">Première année de la saison</label>
+            <input id="ns-annee" name="annee" type="number" min="1990" max="2100" required placeholder="2025 pour la saison 2025-2026">
+            <p class="aide">La saison ira du 1er juillet de cette année au 30 juin de l’année suivante. Ses catégories U10, U12, U15, U17 et Séniors seront créées automatiquement. Utile pour enregistrer une saison passée.</p>
+          </div>`,
+        onValider: async (form) => {
+          const a = Number(form.annee.value);
+          const code = `${a}-${a + 1}`;
+          const { error } = await supabase.from('saisons')
+            .upsert({ code, date_debut: `${a}-07-01`, date_fin: `${a + 1}-06-30` }, { onConflict: 'code' });
+          if (error) throw error;
+          const existantes = new Set(cacheCategories.filter((c) => c.saison === code).map((c) => c.nom));
+          const lignes = CATEGORIES_DU_CLUB.filter(([nom]) => !existantes.has(nom)).map(([nom, ordre]) => ({ nom, saison: code, ordre }));
+          if (lignes.length) {
+            const { error: e2 } = await supabase.from('categories').insert(lignes);
+            if (e2) throw e2;
+          }
+          notifier(`Saison ${code} ajoutée avec ses catégories.`, 'succes');
+          return true;
+        },
+      });
+      if (ok) {
+        await Promise.all([chargerReglages(), chargerCategories()]);
+        if (apresChangement) apresChangement();
       }
-      const { error } = await supabase.from('club_settings').update({ saison_courante: s, updated_at: new Date().toISOString() }).eq('id', 1);
-      if (error) { notifier(messageErreur(error), 'erreur'); return; }
-      reglages.saison_courante = s;
-      notifier(`Saison en cours : ${s}.`, 'succes');
-      if (apresChangement) apresChangement();
     });
   }
 
@@ -1979,10 +2129,11 @@ const __categories = (() => {
       <section class="bloc" id="bloc-categories">
         <div class="bloc-tete">
           <h2>Catégories</h2>
-          ${estAdmin() ? html`<div class="bloc-actions">
-            <button type="button" class="bouton bouton-discret bouton-petit" id="btn-dupliquer">Reprendre pour une autre saison</button>
-            <button type="button" class="bouton bouton-secondaire bouton-petit" id="btn-nouvelle-categorie">Ajouter une catégorie</button>
-          </div>` : ''}
+          <div class="bloc-actions">
+            <label class="visuellement-cache" for="cat-saison-filtre">Saison affichée</label>
+            <select id="cat-saison-filtre" class="select-compact">${optionsSaisons(saisonCourante())}</select>
+            ${estAdmin() ? html`<button type="button" class="bouton bouton-secondaire bouton-petit" id="btn-nouvelle-categorie">Ajouter une catégorie</button>` : ''}
+          </div>
         </div>
         <div id="liste-categories">${chargement()}</div>
       </section>`;
@@ -1991,6 +2142,7 @@ const __categories = (() => {
   async function brancherCategories(racine) {
     const zone = racine.querySelector('#liste-categories');
     if (!zone) return;
+    const filtre = racine.querySelector('#cat-saison-filtre');
     await chargerCategories();
 
     const { data: details, error } = await supabase.from('player_details').select('category_id');
@@ -1999,19 +2151,21 @@ const __categories = (() => {
     details.forEach((d) => { effectifs[d.category_id] = (effectifs[d.category_id] || 0) + 1; });
 
     const afficher = () => {
-      if (!cacheCategories.length) {
-        setHtml(zone, vide('Aucune catégorie. Ajoutez-en une (U10, U12, U15, U17, Séniors).'));
+      const saison = filtre.value;
+      const liste = cacheCategories.filter((c) => c.saison === saison).sort((a, b) => a.ordre - b.ordre);
+      if (!liste.length) {
+        setHtml(zone, vide(`Aucune catégorie pour la saison ${saison}.`));
         return;
       }
       setHtml(zone, html`
+        <p class="texte-doux">Saison ${saison} · ${datesSaison(saison)}</p>
         <div class="tableau-defilant">
           <table class="tableau">
-            <thead><tr><th scope="col">Catégorie</th><th scope="col">Saison</th><th scope="col">Ordre</th><th scope="col">Joueurs</th>${estAdmin() ? html`<th scope="col"><span class="visuellement-cache">Actions</span></th>` : ''}</tr></thead>
+            <thead><tr><th scope="col">Catégorie</th><th scope="col">Ordre</th><th scope="col">Joueurs</th>${estAdmin() ? html`<th scope="col"><span class="visuellement-cache">Actions</span></th>` : ''}</tr></thead>
             <tbody>
-              ${cacheCategories.map((c) => html`
+              ${liste.map((c) => html`
                 <tr data-id="${c.id}">
                   <td data-label="Catégorie"><strong>${c.nom}</strong></td>
-                  <td data-label="Saison">${c.saison}${c.saison === saisonCourante() ? html` <span class="etiquette">en cours</span>` : ''}</td>
                   <td data-label="Ordre">${c.ordre}</td>
                   <td data-label="Joueurs">${effectifs[c.id] || 0}</td>
                   ${estAdmin() ? html`<td class="cellule-actions">
@@ -2025,7 +2179,7 @@ const __categories = (() => {
 
       zone.querySelectorAll('[data-action="modifier"]').forEach((b) => b.addEventListener('click', async () => {
         const c = categorie(b.closest('tr').dataset.id);
-        if (await modaleCategorie(c)) { await chargerCategories(); afficher(); }
+        if (await modaleCategorie(c, saison)) { await chargerCategories(); afficher(); }
       }));
       zone.querySelectorAll('[data-action="supprimer"]').forEach((b) => b.addEventListener('click', async () => {
         const c = categorie(b.closest('tr').dataset.id);
@@ -2042,24 +2196,23 @@ const __categories = (() => {
         afficher();
       }));
     };
+    filtre.addEventListener('change', afficher);
     afficher();
 
     racine.querySelector('#btn-nouvelle-categorie')?.addEventListener('click', async () => {
-      if (await modaleCategorie(null)) { await chargerCategories(); afficher(); }
-    });
-    racine.querySelector('#btn-dupliquer')?.addEventListener('click', async () => {
-      if (await modaleDupliquer()) { await chargerCategories(); afficher(); }
+      if (await modaleCategorie(null, filtre.value)) { await chargerCategories(); afficher(); }
     });
   }
 
-  function modaleCategorie(c) {
-    const ordreSuivant = Math.max(0, ...cacheCategories.map((x) => x.ordre)) + 1;
+  function modaleCategorie(c, saisonParDefautChoisie) {
+    const memeSaison = cacheCategories.filter((x) => x.saison === (c?.saison || saisonParDefautChoisie));
+    const ordreSuivant = Math.max(0, ...memeSaison.map((x) => x.ordre)) + 1;
     return modale({
       titre: c ? `Modifier ${c.nom}` : 'Nouvelle catégorie',
       corps: html`
         <div class="grille-champs">
           <div class="champ"><label for="cat-nom">Nom</label><input id="cat-nom" name="nom" value="${c?.nom || ''}" required maxlength="60" placeholder="U10, U12, U15, U17, Séniors…"></div>
-          <div class="champ"><label for="cat-saison">Saison</label><input id="cat-saison" name="saison" value="${c?.saison || saisonCourante()}" pattern="\\d{4}-\\d{4}" required></div>
+          <div class="champ"><label for="cat-saison">Saison</label><select id="cat-saison" name="saison" required>${optionsSaisons(c?.saison || saisonParDefautChoisie)}</select></div>
           <div class="champ"><label for="cat-ordre">Ordre d’affichage</label><input id="cat-ordre" name="ordre" type="number" min="0" max="999" value="${c ? c.ordre : ordreSuivant}" required></div>
         </div>`,
       onValider: async (form) => {
@@ -2074,35 +2227,7 @@ const __categories = (() => {
       },
     });
   }
-
-  function modaleDupliquer() {
-    const saisons = saisonsConnues();
-    const [a] = saisonCourante().split('-').map(Number);
-    return modale({
-      titre: 'Reprendre les catégories pour une autre saison',
-      libelleValider: 'Créer les catégories',
-      corps: html`
-        <div class="grille-champs">
-          <div class="champ"><label for="dup-src">Saison de départ</label>
-            <select id="dup-src" name="source">${saisons.map((s) => html`<option value="${s}">${s}</option>`)}</select></div>
-          <div class="champ"><label for="dup-dst">Nouvelle saison</label>
-            <input id="dup-dst" name="cible" value="${a + 1}-${a + 2}" pattern="\\d{4}-\\d{4}" required></div>
-        </div>
-        <p class="aide">Les catégories sont créées vides. Ensuite, dans la liste des joueurs, sélectionnez-les et utilisez « Changer de catégorie » avec le motif « Fin de saison ».</p>`,
-      onValider: async (form) => {
-        const v = valeursFormulaire(form);
-        const sources = cacheCategories.filter((c) => c.saison === v.source);
-        const existantes = new Set(cacheCategories.filter((c) => c.saison === v.cible).map((c) => c.nom));
-        const lignes = sources.filter((c) => !existantes.has(c.nom)).map((c) => ({ nom: c.nom, saison: v.cible, ordre: c.ordre }));
-        if (!lignes.length) { notifier('Rien à créer : ces catégories existent déjà.', 'info'); return true; }
-        const { error } = await supabase.from('categories').insert(lignes);
-        if (error) throw error;
-        notifier(`${lignes.length} catégorie(s) créée(s) pour ${v.cible}.`, 'succes');
-        return true;
-      },
-    });
-  }
-  return { chargerReglages, saisonCourante, chargerCategories, categories, categorie, libelleCategorie, saisonsConnues, optionsCategories, ouvrirChangementCategorie, sectionSaison, brancherSaison, sectionCategories, brancherCategories };
+  return { chargerReglages, chargerCategories, saisons, categories, categorie, saisonCourante, saisonSuivante, datesSaison, libelleCategorie, toutesLesSaisons, saisonsConnues, optionsCategories, optionsSaisons, champsSaisonCategorie, brancherSaisonCategorie, ouvrirChangementCategorie, sectionSaison, brancherSaison, sectionCategories, brancherCategories };
 })();
 
 /* ===== Module : documents ===== */
@@ -2661,7 +2786,8 @@ const __people = (() => {
    */
   const { supabase, peutEcrire, appelWorker } = __auth;
   const {
-    categories, libelleCategorie, optionsCategories, ouvrirChangementCategorie, saisonCourante,
+    categories, categorie, libelleCategorie, optionsCategories, ouvrirChangementCategorie, saisonCourante,
+    champsSaisonCategorie, brancherSaisonCategorie,
   } = __categories;
   const { monterDocuments, changerPhoto, urlLecture, avatar } = __documents;
   const { chargerOutilsPdf, enTeteClub, ajouterTableau, imageEnDataUrl, nomFichierPdf, MARGE, HAUT_CONTENU } = __pdf;
@@ -2673,8 +2799,8 @@ const __people = (() => {
   } = __ui;
 
   const filtres = {
-    player: { recherche: '', categorie: '', poste: '', statut: 'presents' },
-    staff: { recherche: '', fonction: '', statut: 'presents' },
+    player: { recherche: '', categorie: '', poste: '', statut: 'presents', dossier: '' },
+    staff: { recherche: '', fonction: '', statut: 'presents', dossier: '' },
     admin: { recherche: '', fonction: '', statut: 'presents' },
   };
 
@@ -2684,9 +2810,10 @@ const __people = (() => {
   /* =====================================================================
    *  LISTE
    * =================================================================== */
-  async function afficherListe(vue, type) {
+  async function afficherListe(vue, type, query = {}) {
     const t = TYPES_PERSONNES[type];
     const f = filtres[type];
+    if (query.dossier && 'dossier' in f) { f.dossier = query.dossier; f.statut = 'presents'; }
     const ecriture = peutEcrire();
     const selectionPossible = type === 'player' && ecriture;
 
@@ -2724,13 +2851,15 @@ const __people = (() => {
         </div>
         ${type === 'player' ? html`
           <div class="champ"><label for="f-categorie">Catégorie</label>
-            <select id="f-categorie">${optionsCategories(f.categorie, { vide: 'Toutes' })}<option value="aucune" ${f.categorie === 'aucune' ? raw('selected') : ''}>Sans catégorie</option></select></div>
+            <select id="f-categorie">${optionsCategories(f.categorie, { vide: 'Toutes', saisons: [saisonCourante(), ...personnes.map((p) => categorie(p.details.category_id)?.saison).filter(Boolean)] })}<option value="aucune" ${f.categorie === 'aucune' ? raw('selected') : ''}>Sans catégorie</option></select></div>
           <div class="champ"><label for="f-poste">Poste</label>
             <select id="f-poste">${options(POSTES, f.poste, { vide: 'Tous' })}</select></div>` : html`
           <div class="champ"><label for="f-fonction">Fonction</label>
             <select id="f-fonction">${options([...new Set(personnes.map((p) => p.fonction).filter(Boolean))].sort(), f.fonction, { vide: 'Toutes' })}</select></div>`}
         <div class="champ"><label for="f-statut">Statut</label>
           <select id="f-statut">${options({ presents: 'Présents (hors partis)', ...STATUTS }, f.statut, { vide: 'Tous' })}</select></div>
+        ${avecDossier ? html`<div class="champ"><label for="f-dossier">Dossier</label>
+          <select id="f-dossier">${options({ incomplet: 'À régulariser', complet: 'Complet' }, f.dossier, { vide: 'Tous' })}</select></div>` : ''}
       </div>
 
       ${selectionPossible ? html`
@@ -2749,6 +2878,8 @@ const __people = (() => {
       return personnes.filter((p) => {
         if (q && !normaliser(`${p.prenom} ${p.nom} ${p.nom} ${p.prenom} ${p.telephone || ''} ${p.fonction || ''}`).includes(q)) return false;
         if (f.statut === 'presents' && p.statut === 'parti') return false;
+        if (f.dossier === 'incomplet' && !p.problemes) return false;
+        if (f.dossier === 'complet' && p.problemes) return false;
         if (f.statut && f.statut !== 'presents' && p.statut !== f.statut) return false;
         if (type === 'player') {
           if (f.categorie === 'aucune' && p.details.category_id) return false;
@@ -2835,6 +2966,7 @@ const __people = (() => {
     brancher('#f-poste', 'poste');
     brancher('#f-fonction', 'fonction');
     brancher('#f-statut', 'statut');
+    brancher('#f-dossier', 'dossier');
 
     vue.querySelector('[data-action="vider-selection"]')?.addEventListener('click', () => {
       selection.clear(); afficher(); majSelection();
@@ -3290,10 +3422,9 @@ const __people = (() => {
           <fieldset class="bloc">
             <legend>Infos sportives</legend>
             <div class="grille-champs">
-              <div class="champ"><label for="c-categorie">Catégorie</label>
-                ${id ? html`<p class="valeur-fixe">${d.category_id ? libelleCategorie(d.category_id) : 'Aucune'}</p><p class="aide">Pour la changer, utilisez « Changer de catégorie » sur la fiche (l’historique est conservé).</p>`
-                  : html`<select id="c-categorie" name="category_id" required>${optionsCategories('', { vide: categories().length ? 'Choisir…' : 'Aucune catégorie : voir Paramètres' })}</select>`}
-              </div>
+              ${id ? html`<div class="champ"><span class="libelle">Catégorie</span>
+                  <p class="valeur-fixe">${d.category_id ? libelleCategorie(d.category_id) : 'Aucune'}</p><p class="aide">Pour la changer, utilisez « Changer de catégorie » sur la fiche (l’historique est conservé).</p></div>`
+                : champsSaisonCategorie({ prefixe: 'c', nomSaison: 'saison_choisie' })}
               <div class="champ"><label for="c-poste">Poste</label><select id="c-poste" name="poste">${options(POSTES, d.poste, { vide: 'Non précisé' })}</select></div>
               ${champ('numero', 'Numéro de maillot', 'type="number" min="1" max="99" inputmode="numeric"', d.numero)}
               <div class="champ"><label for="c-statut">Statut</label><select id="c-statut" name="statut">${options(STATUTS, p.statut)}</select></div>
@@ -3334,7 +3465,7 @@ const __people = (() => {
             ${type === 'staff' ? html`
               <div class="champ">
                 <span class="libelle">Catégories suivies</span>
-                ${categories().length ? html`<div class="cases">${categories().map((c) => html`
+                ${categories().length ? html`<div class="cases">${categories().filter((c) => c.saison === saisonCourante() || suivies.has(c.id)).sort((a, b) => a.ordre - b.ordre).map((c) => html`
                   <label class="case"><input type="checkbox" name="staff_categories" value="${c.id}" ${suivies.has(c.id) ? raw('checked') : ''}> ${libelleCategorie(c.id)}</label>`)}</div>`
                   : html`<p class="aide">Aucune catégorie : le secrétaire général les crée dans Paramètres.</p>`}
               </div>
@@ -3351,6 +3482,7 @@ const __people = (() => {
 
     const form = $('#form-personne', vue);
     const zoneErreur = form.querySelector('.formulaire-erreur');
+    brancherSaisonCategorie(form);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -3415,7 +3547,8 @@ const __matches = (() => {
   const { CONFIG } = __config;
   const { supabase, peutEcrire, peutModifierMatchs, appelWorker } = __auth;
   const {
-    categorie, libelleCategorie, optionsCategories, saisonCourante, saisonsConnues, categories,
+    libelleCategorie, optionsCategories, saisonCourante, saisonsConnues,
+    champsSaisonCategorie, brancherSaisonCategorie,
   } = __categories;
   const { monterDocuments, envoyerDocument, validerFichier } = __documents;
   const {
@@ -3490,7 +3623,7 @@ const __matches = (() => {
       </header>
       <div class="filtres">
         <div class="champ"><label for="fm-saison">Saison</label><select id="fm-saison">${options(saisons, filtres.saison, { vide: 'Toutes' })}</select></div>
-        <div class="champ"><label for="fm-categorie">Catégorie</label><select id="fm-categorie">${optionsCategories(filtres.categorie, { vide: 'Toutes' })}</select></div>
+        <div class="champ"><label for="fm-categorie">Catégorie</label><select id="fm-categorie">${optionsCategories(filtres.categorie, { vide: 'Toutes', saisons: [saisonCourante(), ...new Set(data.map((m) => m.saison))] })}</select></div>
         <div class="champ"><label for="fm-resultat">Résultat</label><select id="fm-resultat">${options({ ...RESULTATS, a_jouer: 'À jouer', feuille: 'Feuille officielle manquante' }, filtres.resultat, { vide: 'Tous' })}</select></div>
       </div>
       <div data-resultats></div>`);
@@ -3792,8 +3925,7 @@ const __matches = (() => {
           <div class="grille-champs">
             <div class="champ"><label for="m-date">Date</label><input id="m-date" name="date" type="date" value="${m.date || ''}" required></div>
             <div class="champ"><label for="m-heure">Heure <span class="facultatif">(facultatif)</span></label><input id="m-heure" name="heure" type="time" value="${(m.heure || '').slice(0, 5)}"></div>
-            <div class="champ"><label for="m-categorie">Catégorie</label><select id="m-categorie" name="category_id" required>${optionsCategories(m.category_id, { vide: categories().length ? 'Choisir…' : 'Aucune catégorie : voir Paramètres' })}</select></div>
-            <div class="champ"><label for="m-saison">Saison</label><input id="m-saison" name="saison" value="${m.saison || saisonCourante()}" pattern="\\d{4}-\\d{4}" required></div>
+            ${champsSaisonCategorie({ prefixe: 'm', saison: m.saison, categorieId: m.category_id })}
             <div class="champ"><label for="m-competition">Compétition</label><input id="m-competition" name="competition" value="${m.competition || ''}" list="competitions" maxlength="120">
               <datalist id="competitions">${COMPETITIONS.map((c) => html`<option value="${c}">`)}</datalist></div>
             <div class="champ"><label for="m-adversaire">Adversaire</label><input id="m-adversaire" name="adversaire" value="${m.adversaire || ''}" required maxlength="120"></div>
@@ -3849,10 +3981,7 @@ const __matches = (() => {
     form.competition.addEventListener('change', () => {
       if (estAmical(form.competition.value)) { form.officiel.checked = false; majFeuille(); }
     });
-    form.category_id.addEventListener('change', () => {
-      const c = categorie(form.category_id.value);
-      if (c) form.saison.value = c.saison;
-    });
+    brancherSaisonCategorie(form);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -4038,7 +4167,7 @@ const __app = (() => {
     route('', afficherTableauDeBord);
     route('tableau-de-bord', afficherTableauDeBord);
     [['joueurs', 'player'], ['staff', 'staff'], ['administration', 'admin']].forEach(([chemin, type]) => {
-      route(chemin, (vue) => afficherListe(vue, type));
+      route(chemin, (vue, p, q) => afficherListe(vue, type, q));
       route(`${chemin}/nouveau`, (vue) => afficherFormulaire(vue, type, null));
       route(`${chemin}/:id`, (vue, p) => afficherFiche(vue, type, p.id));
       route(`${chemin}/:id/modifier`, (vue, p) => afficherFormulaire(vue, type, p.id));
@@ -4160,8 +4289,8 @@ const __app = (() => {
     const [joueursR, autresR, aVenirR, resultatsR, passesR, tousR, feuillesR, dossiers, avecFeuille] = await Promise.all([
       supabase.from('people').select('id, prenom, nom, photo, statut, player_details(category_id)').eq('type', 'player'),
       supabase.from('people').select('id, type, statut').in('type', ['staff', 'admin']),
-      supabase.from('matches').select('*').gte('date', auj).is('score_club', null).order('date').limit(5),
-      supabase.from('matches').select('*').not('score_club', 'is', null).order('date', { ascending: false }).limit(5),
+      supabase.from('matches').select('*').gte('date', auj).is('score_club', null).order('date').limit(3),
+      supabase.from('matches').select('*').not('score_club', 'is', null).order('date', { ascending: false }).limit(3),
       supabase.from('matches').select('id, date, heure, competition, category_id, adversaire, domicile, officiel, score_club, score_adverse, lieu').eq('officiel', true).lte('date', auj).order('date', { ascending: false }),
       supabase.from('matches').select('id, saison, score_club, score_adverse').not('score_club', 'is', null),
       supabase.from('match_players').select('player_id, match_id, buts, passes'),
@@ -4212,30 +4341,23 @@ const __app = (() => {
 
     const nbManquants = dossiers.reduce((s, x) => s + x.manquants.length, 0);
     const nbExpires = dossiers.reduce((s, x) => s + x.expires.length, 0);
-    const LIMITE = 10;
+    const LIMITE = 3; // dossiers affichés sur le tableau de bord
     const profil = profilCourant();
     const heure = new Date().getHours();
     const lien = (p) => `#/${TYPES_PERSONNES[p.type].route}/${p.id}`;
     const noms = (liste) => liste.map((x) => TYPES_DOCUMENTS[x.type]).join(', ');
 
-    const blocStatistiques = (portee) => {
+    // Les trois rubriques de statistiques, recalculées quand on change de période
+    const rubriquesStats = (portee) => {
       const s = stats[portee];
-      return html`
-        <div class="stats-grille">
-          <div class="stats-colonne">
-            <h3>Résultats</h3>
-            ${diagrammeResultats(s.bilan)}
-          </div>
-          <div class="stats-colonne">
-            <h3>Meilleurs buteurs</h3>
-            ${listeClassement(s.buteurs, 'but', urls)}
-          </div>
-          <div class="stats-colonne">
-            <h3>Meilleurs passeurs</h3>
-            ${listeClassement(s.passeurs, 'passe', urls)}
-          </div>
-        </div>`;
+      return {
+        resultats: diagrammeResultats(s.bilan),
+        buteurs: listeClassement(s.buteurs, 'but', urls),
+        passeurs: listeClassement(s.passeurs, 'passe', urls),
+      };
     };
+    const premieres = rubriquesStats('saison');
+    const dossiersVisibles = dossiers.slice(0, LIMITE);
 
     setHtml(vue, html`
       <header class="page-tete">
@@ -4245,6 +4367,10 @@ const __app = (() => {
           <p class="sous-titre">${CONFIG.CLUB_NOM} — tableau de bord</p>
         </div>
         <div class="page-actions">
+          <div class="choix-segmente" role="radiogroup" aria-label="Période des statistiques">
+            <label><input type="radio" name="portee-stats" value="saison" checked><span>Saison ${saisonCourante()}</span></label>
+            <label><input type="radio" name="portee-stats" value="tout"><span>Toutes les saisons</span></label>
+          </div>
           ${peutModifierMatchs() ? html`<a class="bouton bouton-secondaire" href="#/matchs/nouveau">Nouveau match</a>` : ''}
           ${peutEcrire() ? html`<a class="bouton bouton-principal" href="#/joueurs/nouveau">Nouveau joueur</a>` : ''}
         </div>
@@ -4253,86 +4379,93 @@ const __app = (() => {
       ${feuillesManquantes.length ? html`
         <section class="bloc bloc-alerte-forte">
           <div class="bloc-tete"><h2>Feuilles de match officielles à mettre en ligne</h2><span class="compteur compteur-alerte">${feuillesManquantes.length}</span></div>
-          <p class="texte-doux">Obligatoire pour chaque match officiel joué.</p>
-          <ul class="liste-matchs">${feuillesManquantes.map((m) => ligneMatch(m, avecFeuille))}</ul>
+          <ul class="liste-matchs">${feuillesManquantes.slice(0, 3).map((m) => ligneMatch(m, avecFeuille))}</ul>
+          ${feuillesManquantes.length > 3 ? html`<a class="lien-discret" href="#/matchs">Voir les ${feuillesManquantes.length} matchs concernés</a>` : ''}
         </section>` : ''}
 
-      <section class="bloc bloc-statistiques">
-        <div class="bloc-tete">
-          <h2>Statistiques</h2>
-          <div class="choix-segmente" role="radiogroup" aria-label="Période des statistiques">
-            <label><input type="radio" name="portee-stats" value="saison" checked><span>Saison ${saisonCourante()}</span></label>
-            <label><input type="radio" name="portee-stats" value="tout"><span>Toutes les saisons</span></label>
-          </div>
-        </div>
-        <div data-statistiques>${blocStatistiques('saison')}</div>
-      </section>
-
       <div class="tdb">
-        <section class="bloc tdb-effectif">
-          <h2>Effectif</h2>
-          <dl class="chiffres">
-            <div class="chiffre-principal"><dt>Joueurs</dt><dd>${joueurs.length}</dd></div>
-            <div><dt>Staff technique</dt><dd>${staff}</dd></div>
-            <div><dt>Administration</dt><dd>${admin}</dd></div>
-            ${blesses || suspendus ? html`<div class="chiffre-note"><dt>Indisponibles</dt><dd>${blesses} blessé${blesses > 1 ? 's' : ''} · ${suspendus} suspendu${suspendus > 1 ? 's' : ''}</dd></div>` : ''}
-          </dl>
-          ${lignesEffectif.length ? html`
-            <ul class="repartition" aria-label="Joueurs par catégorie">
-              ${lignesEffectif.map((l) => html`
-                <li>
-                  <span class="rep-nom">${l.nom}</span>
-                  <span class="rep-barre" aria-hidden="true"><span style="width:${Math.round((l.n / maxEffectif) * 100)}%"></span></span>
-                  <span class="rep-n">${l.n}</span>
-                </li>`)}
-            </ul>` : vide('Aucune catégorie.')}
+        <section class="bloc carte">
+          <div class="bloc-tete"><h2>Résultats</h2><span class="compteur" data-periode>Saison ${saisonCourante()}</span></div>
+          <div class="carte-corps" data-rubrique="resultats">${premieres.resultats}</div>
         </section>
 
-        <section class="bloc tdb-alertes">
+        <section class="bloc carte">
+          <div class="bloc-tete"><h2>Meilleurs buteurs</h2></div>
+          <div class="carte-corps" data-rubrique="buteurs">${premieres.buteurs}</div>
+        </section>
+
+        <section class="bloc carte">
+          <div class="bloc-tete"><h2>Meilleurs passeurs</h2></div>
+          <div class="carte-corps" data-rubrique="passeurs">${premieres.passeurs}</div>
+        </section>
+
+        <section class="bloc carte tdb-effectif">
+          <div class="bloc-tete"><h2>Effectif</h2></div>
+          <div class="carte-corps">
+            <dl class="chiffres">
+              <div class="chiffre-principal"><dt>Joueurs</dt><dd>${joueurs.length}</dd></div>
+              <div><dt>Staff technique</dt><dd>${staff}</dd></div>
+              <div><dt>Administration</dt><dd>${admin}</dd></div>
+            </dl>
+            ${blesses || suspendus ? html`<p class="chiffre-note">Indisponibles : ${blesses} blessé${blesses > 1 ? 's' : ''} · ${suspendus} suspendu${suspendus > 1 ? 's' : ''}</p>` : ''}
+            ${lignesEffectif.length ? html`
+              <ul class="repartition" aria-label="Joueurs par catégorie">
+                ${lignesEffectif.map((l) => html`
+                  <li>
+                    <span class="rep-nom">${l.nom}</span>
+                    <span class="rep-barre" aria-hidden="true"><span style="width:${Math.round((l.n / maxEffectif) * 100)}%"></span></span>
+                    <span class="rep-n">${l.n}</span>
+                  </li>`)}
+              </ul>` : vide('Aucune catégorie.')}
+          </div>
+        </section>
+
+        <section class="bloc carte tdb-alertes">
           <div class="bloc-tete">
             <h2>Dossiers à régulariser</h2>
-            ${dossiers.length ? html`<span class="compteur compteur-alerte">${dossiers.length}</span>` : ''}
+            ${dossiers.length ? html`<span class="compteur compteur-alerte" title="${dossiers.length} dossier(s) à régulariser">${dossiers.length}</span>` : ''}
           </div>
-          ${dossiers.length ? html`
-            <p class="resume-alertes">
-              ${nbManquants ? html`<span class="expiration expiration-manquant">${nbManquants} pièce${nbManquants > 1 ? 's' : ''} manquante${nbManquants > 1 ? 's' : ''}</span>` : ''}
-              ${nbExpires ? html`<span class="expiration expiration-expire">${nbExpires} expirée${nbExpires > 1 ? 's' : ''}</span>` : ''}
-            </p>
-            <ul class="alertes" data-alertes>
-              ${dossiers.map((x, i) => html`
-                <li class="alerte ${x.manquants.length || x.expires.length ? 'alerte-manquant' : 'alerte-bientot'}" ${i >= LIMITE ? raw('hidden') : ''}>
-                  ${avatar(x.p, urls[x.p.photo], 'moyen')}
-                  <div class="alerte-texte">
-                    <a href="${lien(x.p)}">${nomComplet(x.p)}</a>
-                    <span class="alerte-qui">${x.p.type === 'player' ? `Joueur${un(x.p.player_details)?.category_id ? ` · ${libelleCategorie(un(x.p.player_details).category_id)}` : ''}` : `Staff technique${x.p.fonction ? ` · ${x.p.fonction}` : ''}`}</span>
-                    ${x.manquants.length ? html`<span class="alerte-detail"><strong>Manquant :</strong> ${noms(x.manquants)}</span>` : ''}
-                    ${x.expires.length ? html`<span class="alerte-detail"><strong>Expiré :</strong> ${noms(x.expires)}</span>` : ''}
-                    ${x.bientot.length ? html`<span class="alerte-detail alerte-detail-doux"><strong>Expire bientôt :</strong> ${noms(x.bientot)}</span>` : ''}
-                  </div>
-                </li>`)}
-            </ul>
-            ${dossiers.length > LIMITE ? html`<button type="button" class="bouton bouton-discret bouton-petit" data-voir-tout>Voir les ${dossiers.length} dossiers</button>` : ''}`
-            : html`<p class="tout-va-bien">Tous les dossiers des joueurs et du staff technique sont complets.</p>`}
+          <div class="carte-corps">
+            ${dossiers.length ? html`
+              <p class="resume-alertes">
+                <span class="expiration expiration-manquant">${dossiers.length} dossier${dossiers.length > 1 ? 's' : ''}</span>
+                ${nbManquants ? html`<span class="expiration expiration-manquant">${nbManquants} pièce${nbManquants > 1 ? 's' : ''} manquante${nbManquants > 1 ? 's' : ''}</span>` : ''}
+                ${nbExpires ? html`<span class="expiration expiration-expire">${nbExpires} expirée${nbExpires > 1 ? 's' : ''}</span>` : ''}
+              </p>
+              <ul class="alertes">
+                ${dossiersVisibles.map((x) => html`
+                  <li class="alerte ${x.manquants.length || x.expires.length ? 'alerte-manquant' : 'alerte-bientot'}">
+                    ${avatar(x.p, urls[x.p.photo], 'moyen')}
+                    <div class="alerte-texte">
+                      <a href="${lien(x.p)}">${nomComplet(x.p)}</a>
+                      <span class="alerte-qui">${x.p.type === 'player' ? `Joueur${un(x.p.player_details)?.category_id ? ` · ${libelleCategorie(un(x.p.player_details).category_id)}` : ''}` : `Staff technique${x.p.fonction ? ` · ${x.p.fonction}` : ''}`}</span>
+                      ${x.manquants.length ? html`<span class="alerte-detail"><strong>Manquant :</strong> ${noms(x.manquants)}</span>` : ''}
+                      ${x.expires.length ? html`<span class="alerte-detail"><strong>Expiré :</strong> ${noms(x.expires)}</span>` : ''}
+                      ${!x.manquants.length && !x.expires.length && x.bientot.length ? html`<span class="alerte-detail alerte-detail-doux"><strong>Expire bientôt :</strong> ${noms(x.bientot)}</span>` : ''}
+                    </div>
+                  </li>`)}
+              </ul>`
+              : html`<p class="tout-va-bien">Tous les dossiers des joueurs et du staff technique sont complets.</p>`}
+          </div>
+          ${dossiers.length > LIMITE ? html`<a class="lien-carte" href="#/joueurs?dossier=incomplet">Voir les ${dossiers.length} dossiers à régulariser</a>` : ''}
         </section>
 
-        <section class="bloc">
-          <div class="bloc-tete"><h2>Prochains matchs</h2><a class="lien-discret" href="#/matchs">Tous les matchs</a></div>
-          ${aVenirR.data.length ? html`<ul class="liste-matchs">${aVenirR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun match programmé.')}
-        </section>
-
-        <section class="bloc">
-          <div class="bloc-tete"><h2>Derniers résultats</h2></div>
-          ${resultatsR.data.length ? html`<ul class="liste-matchs">${resultatsR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun résultat enregistré.')}
+        <section class="bloc carte">
+          <div class="bloc-tete"><h2>Matchs</h2><a class="lien-discret" href="#/matchs">Tous les matchs</a></div>
+          <div class="carte-corps">
+            <h3 class="sous-rubrique">À venir</h3>
+            ${aVenirR.data.length ? html`<ul class="liste-matchs liste-matchs-compacte">${aVenirR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun match programmé.')}
+            <h3 class="sous-rubrique">Derniers résultats</h3>
+            ${resultatsR.data.length ? html`<ul class="liste-matchs liste-matchs-compacte">${resultatsR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun résultat enregistré.')}
+          </div>
         </section>
       </div>`);
 
     vue.querySelectorAll('input[name="portee-stats"]').forEach((r) => r.addEventListener('change', () => {
-      setHtml(vue.querySelector('[data-statistiques]'), blocStatistiques(r.value));
+      const rubriques = rubriquesStats(r.value);
+      Object.entries(rubriques).forEach(([cle, contenu]) => setHtml(vue.querySelector(`[data-rubrique="${cle}"]`), contenu));
+      vue.querySelector('[data-periode]').textContent = r.value === 'tout' ? 'Toutes les saisons' : `Saison ${saisonCourante()}`;
     }));
-    vue.querySelector('[data-voir-tout]')?.addEventListener('click', (e) => {
-      vue.querySelectorAll('[data-alertes] li[hidden]').forEach((li) => { li.hidden = false; });
-      e.currentTarget.remove();
-    });
   }
 
   /* ---------------------------------------------------------------------
