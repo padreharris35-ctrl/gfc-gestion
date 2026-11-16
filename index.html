@@ -16,9 +16,9 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
-      SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
-      WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
+      SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+      SUPABASE_ANON_KEY: 'VOTRE_CLE_ANON_PUBLIQUE',
+      WORKER_URL: 'https://gfc-fichiers.VOTRE-SOUS-DOMAINE.workers.dev',
     };
     /* ================ FIN DES RÉGLAGES — ne rien modifier en dessous ================ */
   </script>
@@ -1385,6 +1385,15 @@ const __ui = (() => {
     return html`<span class="statut statut-${statut || 'actif'}">${STATUTS[statut] || statut || ''}</span>`;
   }
 
+  /**
+   * Règle du club : un joueur convoqué pour un match joué compte comme ayant participé au match.
+   * (titulaire ou minutes jouées valent aussi convocation).
+   */
+  function aParticipe(l, match) {
+    const joue = match ? match.score_club !== null && match.score_club !== undefined : true;
+    return joue && !!(l.convoque || l.titulaire || Number(l.minutes) > 0);
+  }
+
   function pastilleResultat(r) {
     if (!r) return html`<span class="resultat resultat-a-jouer">À jouer</span>`;
     return html`<span class="resultat resultat-${r}" title="${RESULTATS[r]}">${RESULTATS[r].charAt(0)}</span>`;
@@ -1544,7 +1553,7 @@ const __ui = (() => {
     window.addEventListener('hashchange', afficherRoute);
     afficherRoute();
   }
-  return { esc, SafeHtml, raw, html, setHtml, urlSure, $, $$, STATUTS, ROLES, ROLES_DESCRIPTION, TYPES_PERSONNES, TYPES_DOCUMENTS, DOCS_PERSONNE, DOCS_MATCH, documentsRequis, POSTES, PIEDS, textePied, FONCTIONS_STAFF, FONCTIONS_ADMIN, COMPETITIONS, estAmical, dateLocale, aujourdhui, ajouterJours, formatDate, formatDateLongue, jourEtMois, formatDateHeure, formatHeure, age, formatTaille, nomComplet, normaliser, un, saisonParDefaut, resultatMatch, RESULTATS, etatExpiration, etatDossier, messageErreur, notifier, modale, confirmer, chargement, vide, badgeStatut, pastilleResultat, options, valeursFormulaire, antiRebond, telechargerBlob, mouvementReduit, animerVue, sortieDouce, route, naviguer, demarrerRouteur };
+  return { esc, SafeHtml, raw, html, setHtml, urlSure, $, $$, STATUTS, ROLES, ROLES_DESCRIPTION, TYPES_PERSONNES, TYPES_DOCUMENTS, DOCS_PERSONNE, DOCS_MATCH, documentsRequis, POSTES, PIEDS, textePied, FONCTIONS_STAFF, FONCTIONS_ADMIN, COMPETITIONS, estAmical, dateLocale, aujourdhui, ajouterJours, formatDate, formatDateLongue, jourEtMois, formatDateHeure, formatHeure, age, formatTaille, nomComplet, normaliser, un, saisonParDefaut, resultatMatch, RESULTATS, etatExpiration, etatDossier, messageErreur, notifier, modale, confirmer, chargement, vide, badgeStatut, pastilleResultat, aParticipe, options, valeursFormulaire, antiRebond, telechargerBlob, mouvementReduit, animerVue, sortieDouce, route, naviguer, demarrerRouteur };
 })();
 
 /* ===== Module : auth ===== */
@@ -2884,7 +2893,7 @@ const __people = (() => {
     html, raw, setHtml, $, $$, notifier, confirmer, messageErreur, vide, naviguer,
     TYPES_PERSONNES, STATUTS, POSTES, PIEDS, textePied, FONCTIONS_STAFF, FONCTIONS_ADMIN, DOCS_PERSONNE, TYPES_DOCUMENTS,
     formatDate, formatDateHeure, age, nomComplet, normaliser, un, badgeStatut, options,
-    valeursFormulaire, antiRebond, pastilleResultat, resultatMatch, etatDossier, documentsRequis, telechargerBlob,
+    valeursFormulaire, antiRebond, pastilleResultat, aParticipe, resultatMatch, etatDossier, documentsRequis, telechargerBlob,
   } = __ui;
 
   const filtres = {
@@ -3393,8 +3402,8 @@ const __people = (() => {
       const lignes = matchsR.data.filter((l) => l.matches).sort((x, z) => z.matches.date.localeCompare(x.matches.date));
       const total = (k) => lignes.reduce((n, l) => n + (Number(l[k]) || 0), 0);
       section('Statistiques');
-      tableau(['Convocations', 'Matchs joués', 'Titularisations', 'Minutes', 'Buts', 'Passes déc.', 'Jaunes', 'Rouges'],
-        [[lignes.filter((l) => l.convoque).length, lignes.filter((l) => l.minutes > 0 || l.titulaire).length,
+      tableau(['Matchs joués', 'Titularisations', 'Minutes', 'Buts', 'Passes déc.', 'Jaunes', 'Rouges'],
+        [[lignes.filter((l) => aParticipe(l, l.matches)).length,
           lignes.filter((l) => l.titulaire).length, total('minutes'), total('buts'), total('passes'), total('jaunes'), total('rouges')]]);
       section('Matchs joués');
       tableau(['Date', 'Match', 'Catégorie', 'Score', 'Min.', 'Buts', 'Passes', 'Cartons'],
@@ -3453,12 +3462,11 @@ const __people = (() => {
       .eq('player_id', joueurId);
     if (error) throw error;
     const lignes = data.filter((l) => l.matches).sort((a, b) => b.matches.date.localeCompare(a.matches.date));
-    const joues = lignes.filter((l) => l.minutes > 0 || l.titulaire);
+    const joues = lignes.filter((l) => aParticipe(l, l.matches));
     const total = (k) => lignes.reduce((s, l) => s + (Number(l[k]) || 0), 0);
 
     el.insertAdjacentHTML('beforeend', (lignes.length ? html`
       <dl class="stats">
-        <div><dt>Convocations</dt><dd>${lignes.filter((l) => l.convoque).length}</dd></div>
         <div><dt>Matchs joués</dt><dd>${joues.length}</dd></div>
         <div><dt>Titularisations</dt><dd>${lignes.filter((l) => l.titulaire).length}</dd></div>
         <div><dt>Minutes</dt><dd>${total('minutes')}</dd></div>
@@ -4205,7 +4213,7 @@ const __app = (() => {
   const {
     html, raw, setHtml, $, route, demarrerRouteur, notifier, messageErreur, vide,
     ROLES, TYPES_DOCUMENTS, TYPES_PERSONNES, STATUTS, aujourdhui, formatDate, nomComplet, un,
-    resultatMatch, telechargerBlob, etatDossier, formatDateLongue, textePied,
+    resultatMatch, aParticipe, telechargerBlob, etatDossier, formatDateLongue, textePied,
   } = __ui;
 
   /* ---------------------------------------------------------------------
@@ -4337,9 +4345,14 @@ const __app = (() => {
       const n = Number(l[cle]) || 0;
       if (n > 0 && joueursParId.has(l.player_id)) {
         const t = totaux.get(l.player_id) || { total: 0, matchs: 0 };
-        t.total += n; t.matchs += 1;
+        t.total += n;
         totaux.set(l.player_id, t);
       }
+    });
+    // « x matchs » = matchs joués (convoqué = a participé) sur la même période
+    lignes.forEach((l) => {
+      const t = totaux.get(l.player_id);
+      if (t && aParticipe(l)) t.matchs += 1;
     });
     const tries = [...totaux.entries()]
       .map(([id, t]) => ({ joueur: joueursParId.get(id), total: t.total, matchs: t.matchs }))
@@ -4413,7 +4426,7 @@ const __app = (() => {
       supabase.from('matches').select('*').not('score_club', 'is', null).order('date', { ascending: false }).limit(3),
       supabase.from('matches').select('id, date, heure, competition, category_id, adversaire, domicile, officiel, score_club, score_adverse, lieu').eq('officiel', true).lte('date', auj).order('date', { ascending: false }),
       supabase.from('matches').select('id, saison, score_club, score_adverse').not('score_club', 'is', null),
-      supabase.from('match_players').select('player_id, match_id, buts, passes'),
+      supabase.from('match_players').select('player_id, match_id, buts, passes, convoque, titulaire, minutes'),
       dossiersARegulariser(),
       matchsAvecFeuille(),
     ]);
@@ -4431,7 +4444,7 @@ const __app = (() => {
       const garder = (saison) => portee === 'tout' || saison === saisonCourante();
       const bilan = { victoire: 0, nul: 0, defaite: 0 };
       tousR.data.filter((m) => garder(m.saison)).forEach((m) => { bilan[resultatMatch(m)] += 1; });
-      const lignes = feuillesR.data.filter((l) => garder(saisonDuMatch.get(l.match_id)));
+      const lignes = feuillesR.data.filter((l) => saisonDuMatch.has(l.match_id) && garder(saisonDuMatch.get(l.match_id)));
       return { bilan, buteurs: classement(lignes, 'buts', joueursParId), passeurs: classement(lignes, 'passes', joueursParId) };
     };
     const stats = { saison: statistiques('saison'), tout: statistiques('tout') };
