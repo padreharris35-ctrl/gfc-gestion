@@ -16,9 +16,9 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
-      SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
-      WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
+      SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+      SUPABASE_ANON_KEY: 'VOTRE_CLE_ANON_PUBLIQUE',
+      WORKER_URL: 'https://gfc-fichiers.VOTRE-SOUS-DOMAINE.workers.dev',
     };
     /* ================ FIN DES RÉGLAGES — ne rien modifier en dessous ================ */
   </script>
@@ -880,6 +880,10 @@ p.chiffre-note { margin: -0.4rem 0 0.7rem; font-size: 0.98rem; color: var(--encr
 .tdb > .carte { min-height: 0; }
 .tdb .classement li { padding-top: 0.25rem; padding-bottom: 0.25rem; }
 
+/* Case « deux pieds » alignée avec les listes déroulantes */
+.champ-case { justify-content: flex-end; }
+.champ-case .case { min-height: 44px; font-weight: 500; }
+
   </style>
 </head>
 <body>
@@ -1108,6 +1112,15 @@ const __ui = (() => {
     'Gardien', 'Défenseur central', 'Latéral droit', 'Latéral gauche', 'Milieu défensif',
     'Milieu central', 'Milieu offensif', 'Ailier droit', 'Ailier gauche', 'Attaquant',
   ];
+
+  const PIEDS = { droit: 'Droit', gauche: 'Gauche' };
+
+  /** « Droit », « Droit · très à l’aise des deux pieds »… */
+  function textePied(d = {}) {
+    const base = PIEDS[d.pied_fort] || '';
+    if (!d.deux_pieds) return base;
+    return base ? `${base} · très à l’aise des deux pieds` : 'Très à l’aise des deux pieds';
+  }
 
   const FONCTIONS_STAFF = [
     'Entraîneur principal', 'Entraîneur adjoint', 'Préparateur physique', 'Entraîneur des gardiens',
@@ -1531,7 +1544,7 @@ const __ui = (() => {
     window.addEventListener('hashchange', afficherRoute);
     afficherRoute();
   }
-  return { esc, SafeHtml, raw, html, setHtml, urlSure, $, $$, STATUTS, ROLES, ROLES_DESCRIPTION, TYPES_PERSONNES, TYPES_DOCUMENTS, DOCS_PERSONNE, DOCS_MATCH, documentsRequis, POSTES, FONCTIONS_STAFF, FONCTIONS_ADMIN, COMPETITIONS, estAmical, dateLocale, aujourdhui, ajouterJours, formatDate, formatDateLongue, jourEtMois, formatDateHeure, formatHeure, age, formatTaille, nomComplet, normaliser, un, saisonParDefaut, resultatMatch, RESULTATS, etatExpiration, etatDossier, messageErreur, notifier, modale, confirmer, chargement, vide, badgeStatut, pastilleResultat, options, valeursFormulaire, antiRebond, telechargerBlob, mouvementReduit, animerVue, sortieDouce, route, naviguer, demarrerRouteur };
+  return { esc, SafeHtml, raw, html, setHtml, urlSure, $, $$, STATUTS, ROLES, ROLES_DESCRIPTION, TYPES_PERSONNES, TYPES_DOCUMENTS, DOCS_PERSONNE, DOCS_MATCH, documentsRequis, POSTES, PIEDS, textePied, FONCTIONS_STAFF, FONCTIONS_ADMIN, COMPETITIONS, estAmical, dateLocale, aujourdhui, ajouterJours, formatDate, formatDateLongue, jourEtMois, formatDateHeure, formatHeure, age, formatTaille, nomComplet, normaliser, un, saisonParDefaut, resultatMatch, RESULTATS, etatExpiration, etatDossier, messageErreur, notifier, modale, confirmer, chargement, vide, badgeStatut, pastilleResultat, options, valeursFormulaire, antiRebond, telechargerBlob, mouvementReduit, animerVue, sortieDouce, route, naviguer, demarrerRouteur };
 })();
 
 /* ===== Module : auth ===== */
@@ -2245,7 +2258,7 @@ const __documents = (() => {
   const { supabase, appelWorker } = __auth;
   const {
     html, raw, setHtml, notifier, modale, confirmer, messageErreur, chargement,
-    TYPES_DOCUMENTS, formatDate, formatTaille, etatExpiration, valeursFormulaire, options, $$,
+    TYPES_DOCUMENTS, formatDate, formatTaille, etatExpiration, valeursFormulaire, options, $$, nomComplet,
   } = __ui;
 
   const TAILLE_MAX = CONFIG.TAILLE_MAX_MO * 1024 * 1024;
@@ -2352,9 +2365,18 @@ const __documents = (() => {
   async function urlsLecture(cles) {
     const maintenant = Date.now();
     const manquantes = [...new Set(cles.filter(Boolean))].filter((k) => !(cacheUrls.get(k)?.expire > maintenant));
+    const garder = (urls) => Object.entries(urls || {}).forEach(([k, u]) => cacheUrls.set(k, { url: u, expire: maintenant + DUREE_CACHE }));
     for (let i = 0; i < manquantes.length; i += 100) {
-      const { urls } = await appelWorker('/download-urls', { keys: manquantes.slice(i, i + 100) });
-      Object.entries(urls).forEach(([k, u]) => cacheUrls.set(k, { url: u, expire: maintenant + DUREE_CACHE }));
+      const lot = manquantes.slice(i, i + 100);
+      try {
+        garder((await appelWorker('/download-urls', { keys: lot })).urls);
+      } catch (err) {
+        // Un seul fichier refusé ne doit pas priver tous les autres : on reprend un par un.
+        if (lot.length === 1) throw err;
+        const res = await Promise.allSettled(lot.map((k) => appelWorker('/download-urls', { keys: [k] })));
+        res.forEach((r) => { if (r.status === 'fulfilled') garder(r.value.urls); });
+        if (!res.some((r) => r.status === 'fulfilled')) throw err;
+      }
     }
     const res = {};
     cles.forEach((k) => { if (cacheUrls.get(k)) res[k] = cacheUrls.get(k).url; });
@@ -2599,13 +2621,42 @@ const __documents = (() => {
   }
 
   /** Avatar : photo si disponible, sinon initiales. */
+  /**
+   * Photos d'une liste de personnes : Map id → URL de lecture.
+   * Si la fiche n'a pas de photo définie, on prend la dernière « Photo de profil » déposée.
+   */
+  async function photosPersonnes(personnes) {
+    const liste = [...new Map(personnes.filter(Boolean).map((p) => [p.id, p])).values()];
+    const cleDe = new Map(liste.filter((p) => p.photo).map((p) => [p.id, p.photo]));
+    const sansPhoto = liste.filter((p) => !p.photo).map((p) => p.id);
+    if (sansPhoto.length) {
+      const { data } = await supabase.from('documents').select('person_id, cle_r2')
+        .eq('type', 'photo_profil').in('person_id', sansPhoto).order('created_at', { ascending: false });
+      (data || []).forEach((d) => { if (!cleDe.has(d.person_id)) cleDe.set(d.person_id, d.cle_r2); });
+    }
+    const photos = new Map();
+    if (!cleDe.size) return photos;
+    let urls = {};
+    try { urls = await urlsLecture([...cleDe.values()]); } catch (err) { console.warn('Photos indisponibles :', err); }
+    cleDe.forEach((cle, id) => { if (urls[cle]) photos.set(id, urls[cle]); });
+    return photos;
+  }
+
+  // Si une photo ne se charge pas (lien expiré, fichier supprimé), on remet les initiales.
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (img instanceof HTMLImageElement && img.parentElement?.classList.contains('avatar')) {
+      img.parentElement.textContent = img.dataset.ini || '·';
+    }
+  }, true);
+
   function avatar(personne, url, taille = 'moyen') {
     const ini = `${String(personne.prenom || '').charAt(0)}${String(personne.nom || '').charAt(0)}`.toUpperCase();
     return url
-      ? html`<span class="avatar avatar-${taille}"><img src="${url}" alt=""></span>`
+      ? html`<span class="avatar avatar-${taille}" title="${nomComplet(personne)}"><img src="${url}" alt="${nomComplet(personne)}" data-ini="${ini}"></span>`
       : html`<span class="avatar avatar-${taille}" aria-hidden="true">${ini || raw('&middot;')}</span>`;
   }
-  return { ACCEPT, validerFichier, envoyerDocument, urlsLecture, urlLecture, changerPhoto, monterDocuments, avatar };
+  return { ACCEPT, validerFichier, envoyerDocument, urlsLecture, urlLecture, changerPhoto, monterDocuments, photosPersonnes, avatar };
 })();
 
 /* ===== Module : pdf ===== */
@@ -2793,7 +2844,7 @@ const __people = (() => {
   const { chargerOutilsPdf, enTeteClub, ajouterTableau, imageEnDataUrl, nomFichierPdf, MARGE, HAUT_CONTENU } = __pdf;
   const {
     html, raw, setHtml, $, $$, notifier, confirmer, messageErreur, vide, naviguer,
-    TYPES_PERSONNES, STATUTS, POSTES, FONCTIONS_STAFF, FONCTIONS_ADMIN, DOCS_PERSONNE, TYPES_DOCUMENTS,
+    TYPES_PERSONNES, STATUTS, POSTES, PIEDS, textePied, FONCTIONS_STAFF, FONCTIONS_ADMIN, DOCS_PERSONNE, TYPES_DOCUMENTS,
     formatDate, formatDateHeure, age, nomComplet, normaliser, un, badgeStatut, options,
     valeursFormulaire, antiRebond, pastilleResultat, resultatMatch, etatDossier, documentsRequis, telechargerBlob,
   } = __ui;
@@ -3048,6 +3099,9 @@ const __people = (() => {
             <dl class="details">
               <div><dt>Catégorie</dt><dd>${d.category_id ? libelleCategorie(d.category_id) : '—'}</dd></div>
               <div><dt>Poste</dt><dd>${d.poste || '—'}</dd></div>
+              <div><dt>Second poste</dt><dd>${d.second_poste || '—'}</dd></div>
+              <div><dt>Pied fort</dt><dd>${PIEDS[d.pied_fort] || '—'}</dd></div>
+              <div><dt>Deux pieds</dt><dd>${d.deux_pieds ? html`<span class="statut statut-actif">Joue très bien des deux pieds</span>` : 'Non'}</dd></div>
               <div><dt>Numéro de maillot</dt><dd>${d.numero ?? '—'}</dd></div>
               <div><dt>Statut</dt><dd>${STATUTS[p.statut]}</dd></div>
             </dl>
@@ -3246,6 +3300,7 @@ const __people = (() => {
       section('Infos sportives');
       paires([
         ['Catégorie', d.category_id ? libelleCategorie(d.category_id) : ''], ['Poste', d.poste],
+        ['Second poste', d.second_poste], ['Pied fort', textePied(d)],
         ['Numéro de maillot', d.numero], ['Statut', STATUTS[p.statut]],
       ]);
       section('Parents ou tuteurs');
@@ -3426,6 +3481,9 @@ const __people = (() => {
                   <p class="valeur-fixe">${d.category_id ? libelleCategorie(d.category_id) : 'Aucune'}</p><p class="aide">Pour la changer, utilisez « Changer de catégorie » sur la fiche (l’historique est conservé).</p></div>`
                 : champsSaisonCategorie({ prefixe: 'c', nomSaison: 'saison_choisie' })}
               <div class="champ"><label for="c-poste">Poste</label><select id="c-poste" name="poste">${options(POSTES, d.poste, { vide: 'Non précisé' })}</select></div>
+              <div class="champ"><label for="c-second_poste">Second poste</label><select id="c-second_poste" name="second_poste">${options(POSTES, d.second_poste, { vide: 'Aucun' })}</select></div>
+              <div class="champ"><label for="c-pied_fort">Pied fort</label><select id="c-pied_fort" name="pied_fort">${options(PIEDS, d.pied_fort, { vide: 'Non précisé' })}</select></div>
+              <div class="champ champ-case"><label class="case"><input type="checkbox" id="c-deux_pieds" name="deux_pieds" value="1" ${d.deux_pieds ? raw('checked') : ''}> Joue très bien des deux pieds</label></div>
               ${champ('numero', 'Numéro de maillot', 'type="number" min="1" max="99" inputmode="numeric"', d.numero)}
               <div class="champ"><label for="c-statut">Statut</label><select id="c-statut" name="statut">${options(STATUTS, p.statut)}</select></div>
             </div>
@@ -3498,6 +3556,9 @@ const __people = (() => {
         Object.assign(charge, {
           category_id: id ? null : v.category_id,
           poste: v.poste,
+          second_poste: v.second_poste && v.second_poste !== v.poste ? v.second_poste : '',
+          pied_fort: v.pied_fort,
+          deux_pieds: v.deux_pieds === '1',
           numero: v.numero || null,
           notes_medicales: v.notes_medicales,
           guardians: [0, 1].map((i) => ({
@@ -4078,14 +4139,14 @@ const __app = (() => {
   } = __categories;
   const { afficherListe, afficherFiche, afficherFormulaire } = __people;
   const { chargerOutilsPdf, enTeteClub, ajouterTableau } = __pdf;
-  const { urlsLecture, avatar } = __documents;
+  const { photosPersonnes, avatar } = __documents;
   const {
     afficherListeMatchs, afficherMatch, afficherFormulaireMatch, ligneMatch, matchsAvecFeuille, feuilleManquante,
   } = __matches;
   const {
     html, raw, setHtml, $, route, demarrerRouteur, notifier, messageErreur, vide,
     ROLES, TYPES_DOCUMENTS, TYPES_PERSONNES, STATUTS, aujourdhui, formatDate, nomComplet, un,
-    resultatMatch, telechargerBlob, etatDossier, formatDateLongue,
+    resultatMatch, telechargerBlob, etatDossier, formatDateLongue, textePied,
   } = __ui;
 
   /* ---------------------------------------------------------------------
@@ -4267,14 +4328,14 @@ const __app = (() => {
       </div>`;
   }
 
-  function listeClassement(entrees, unite, urls) {
+  function listeClassement(entrees, unite, photos) {
     if (!entrees.length) return vide(`Aucun ${unite === 'but' ? 'but' : 'passe décisive'} enregistré pour l’instant.`);
     return html`
       <ol class="classement">
         ${entrees.map((x) => html`
           <li class="${x.rang === 1 ? 'classement-premier' : ''}">
             <span class="classement-rang">${x.rang}</span>
-            ${avatar(x.joueur, urls[x.joueur.photo], 'moyen')}
+            ${avatar(x.joueur, photos.get(x.joueur.id), 'moyen')}
             <a class="classement-nom" href="#/joueurs/${x.joueur.id}">
               <strong>${nomComplet(x.joueur)}</strong>
               <span>${un(x.joueur.player_details)?.category_id ? libelleCategorie(un(x.joueur.player_details).category_id) : 'Sans catégorie'} · ${x.matchs} match${x.matchs > 1 ? 's' : ''}</span>
@@ -4317,13 +4378,11 @@ const __app = (() => {
     const stats = { saison: statistiques('saison'), tout: statistiques('tout') };
 
     // Photos des joueurs affichés sur le tableau de bord (classements et dossiers)
-    const avecPhoto = [
+    const affiches = [
       ...stats.saison.buteurs, ...stats.saison.passeurs, ...stats.tout.buteurs, ...stats.tout.passeurs,
-    ].map((x) => x.joueur.photo).concat(dossiers.map((x) => x.p.photo)).filter(Boolean);
-    let urls = {};
-    if (avecPhoto.length) {
-      try { urls = await urlsLecture([...new Set(avecPhoto)]); } catch { urls = {}; }
-    }
+    ].map((x) => x.joueur).concat(dossiers.slice(0, 3).map((x) => x.p));
+    let photos = new Map();
+    try { photos = await photosPersonnes(affiches); } catch (err) { console.warn('Photos indisponibles :', err); }
 
     const parCategorie = new Map();
     joueurs.forEach((j) => {
@@ -4352,8 +4411,8 @@ const __app = (() => {
       const s = stats[portee];
       return {
         resultats: diagrammeResultats(s.bilan),
-        buteurs: listeClassement(s.buteurs, 'but', urls),
-        passeurs: listeClassement(s.passeurs, 'passe', urls),
+        buteurs: listeClassement(s.buteurs, 'but', photos),
+        passeurs: listeClassement(s.passeurs, 'passe', photos),
       };
     };
     const premieres = rubriquesStats('saison');
@@ -4435,7 +4494,7 @@ const __app = (() => {
               <ul class="alertes">
                 ${dossiersVisibles.map((x) => html`
                   <li class="alerte ${x.manquants.length || x.expires.length ? 'alerte-manquant' : 'alerte-bientot'}">
-                    ${avatar(x.p, urls[x.p.photo], 'moyen')}
+                    ${avatar(x.p, photos.get(x.p.id), 'moyen')}
                     <div class="alerte-texte">
                       <a href="${lien(x.p)}">${nomComplet(x.p)}</a>
                       <span class="alerte-qui">${x.p.type === 'player' ? `Joueur${un(x.p.player_details)?.category_id ? ` · ${libelleCategorie(un(x.p.player_details).category_id)}` : ''}` : `Staff technique${x.p.fonction ? ` · ${x.p.fonction}` : ''}`}</span>
@@ -4532,12 +4591,12 @@ const __app = (() => {
         ]);
         return {
           titre: 'Joueurs et parents',
-          entetes: ['Prénom', 'Nom', 'Naissance', 'Catégorie', 'Poste', 'N°', 'Statut', 'Téléphone', 'Parent / tuteur (urgence)', 'Tél. parent', 'Autre parent', 'Tél.', 'Notes médicales', 'Pièces à régulariser'],
+          entetes: ['Prénom', 'Nom', 'Naissance', 'Catégorie', 'Poste', 'Second poste', 'Pied fort', 'N°', 'Statut', 'Téléphone', 'Parent / tuteur (urgence)', 'Tél. parent', 'Autre parent', 'Tél.', 'Notes médicales', 'Pièces à régulariser'],
           lignes: data.map((p) => {
             const d = un(p.player_details) || {};
             const g = [...(p.guardians || [])].sort((a, b) => Number(b.urgence) - Number(a.urgence));
             const pb = etatDossier(p, docs.filter((x) => x.person_id === p.id)).filter((x) => x.etat === 'manquant' || x.etat === 'expire');
-            return [p.prenom, p.nom, dateFr(p.date_naissance), d.category_id ? libelleCategorie(d.category_id) : '', d.poste, d.numero,
+            return [p.prenom, p.nom, dateFr(p.date_naissance), d.category_id ? libelleCategorie(d.category_id) : '', d.poste, d.second_poste, textePied(d), d.numero,
               STATUTS[p.statut], p.telephone, g[0] ? `${g[0].nom}${g[0].lien ? ` (${g[0].lien})` : ''}` : '', g[0]?.telephone,
               g[1] ? `${g[1].nom}${g[1].lien ? ` (${g[1].lien})` : ''}` : '', g[1]?.telephone, d.notes_medicales,
               pb.map((x) => `${TYPES_DOCUMENTS[x.type]} (${x.etat === 'expire' ? 'expiré' : 'manquant'})`).join(', ')];
