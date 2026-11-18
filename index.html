@@ -16,9 +16,9 @@
        « service_role » / « secret » de Supabase ni les clés R2.
        ================================================================ */
     window.CONFIG_GFC = {
-      SUPABASE_URL: 'https://gjqkwopvollbxealeoqt.supabase.co',
-      SUPABASE_ANON_KEY: 'sb_publishable_himw6P1feiGzxZqNxLPryA_zKuEZp5_',
-      WORKER_URL: 'https://gfc-fichiers.padreharris35.workers.dev/',
+      SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+      SUPABASE_ANON_KEY: 'VOTRE_CLE_ANON_PUBLIQUE',
+      WORKER_URL: 'https://gfc-fichiers.VOTRE-SOUS-DOMAINE.workers.dev',
     };
     /* ================ FIN DES RÉGLAGES — ne rien modifier en dessous ================ */
   </script>
@@ -922,6 +922,17 @@ p.chiffre-note { margin: -0.4rem 0 0.7rem; font-size: 0.98rem; color: var(--encr
 .case-programme { margin: 0.4rem 0 0.2rem; }
 .programme-envoye { margin-top: 0.4rem; color: var(--vert); }
 .apercu-mail { white-space: pre-wrap; font-family: var(--police); font-size: 0.95rem; background: var(--bleu-voile); border: 1px solid var(--filet); border-radius: var(--rayon-petit); padding: 0.7rem 0.9rem; max-height: 38vh; overflow: auto; margin: 0.5rem 0; }
+
+/* Tableau de bord : rubrique Buts et Matchs sur toute la largeur */
+.tdb > .carte.tdb-matchs { grid-column: 1 / -1; }
+.tdb-matchs { grid-row: auto; }
+.matchs-deux-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.4rem; }
+.anneau-total-ratio { font-size: 8.5px; }
+.legende-bilan { border-top: 1px solid var(--filet); padding-top: 0.35rem; margin-top: 0.15rem; }
+.diff-positive { color: var(--vert) !important; }
+.diff-negative { color: var(--rouge-fonce) !important; }
+.arc-marques, .arc-encaisses { transition: stroke-dasharray 0.9s var(--ease-luxe); }
+@media (max-width: 760px) { .matchs-deux-colonnes { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -4582,6 +4593,52 @@ const __app = (() => {
       </div>`;
   }
 
+  /** Buts marqués / encaissés : anneau + moyennes par match. */
+  function diagrammeButs({ marques, encaisses, matchs }) {
+    const total = marques + encaisses;
+    const virgule = (n) => (Math.round(n * 100) / 100).toString().replace('.', ',');
+    const parMatch = (n) => (matchs ? virgule(n / matchs) : '0');
+    const diff = marques - encaisses;
+    const parts = [
+      { cle: 'marques', libelle: 'Marqués', n: marques, couleur: 'var(--bleu)' },
+      { cle: 'encaisses', libelle: 'Encaissés', n: encaisses, couleur: 'var(--rouge)' },
+    ];
+    let cumul = 0;
+    const arcs = parts.filter((x) => x.n > 0).map((x) => {
+      const valeur = (x.n / total) * 100;
+      const arc = html`<circle class="arc arc-${x.cle}" cx="21" cy="21" r="15.9155" fill="none" stroke="${x.couleur}" stroke-width="6.5"
+        stroke-dasharray="${valeur.toFixed(3)} ${(100 - valeur).toFixed(3)}" stroke-dashoffset="${(25 - cumul).toFixed(3)}"><title>${x.libelle} : ${x.n}</title></circle>`;
+      cumul += valeur;
+      return arc;
+    });
+    if (!matchs) return vide('Aucun match joué sur cette période.');
+    const resume = `${marques} buts marqués, ${encaisses} encaissés en ${matchs} match(s), soit ${parMatch(marques)} marqué(s) et ${parMatch(encaisses)} encaissé(s) par match`;
+    return html`
+      <div class="diagramme">
+        <svg class="anneau-resultats" viewBox="0 0 42 42" role="img" aria-label="${resume}">
+          <circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--bleu-voile)" stroke-width="6.5"></circle>
+          ${arcs}
+          <text x="21" y="21" class="anneau-total anneau-total-ratio" text-anchor="middle" dominant-baseline="central">${parMatch(marques)}</text>
+          <text x="21" y="27.5" class="anneau-legende-centre" text-anchor="middle">buts / match</text>
+        </svg>
+        <ul class="legende legende-buts">
+          ${parts.map((x) => html`
+            <li>
+              <span class="pastille-couleur" style="background:${x.couleur}"></span>
+              <span class="legende-nom">${x.libelle}</span>
+              <span class="legende-n">${x.n}</span>
+              <span class="legende-pct">${parMatch(x.n)} / m.</span>
+            </li>`)}
+          <li class="legende-bilan">
+            <span></span>
+            <span class="legende-nom">Différence</span>
+            <span class="legende-n ${diff > 0 ? 'diff-positive' : diff < 0 ? 'diff-negative' : ''}">${diff > 0 ? '+' : ''}${diff}</span>
+            <span class="legende-pct">${matchs} match${matchs > 1 ? 's' : ''}</span>
+          </li>
+        </ul>
+      </div>`;
+  }
+
   function listeClassement(entrees, unite, photos) {
     if (!entrees.length) return vide(`Aucun ${unite === 'but' ? 'but' : 'passe décisive'} enregistré pour l’instant.`);
     return html`
@@ -4625,9 +4682,15 @@ const __app = (() => {
     const statistiques = (portee) => {
       const garder = (saison) => portee === 'tout' || saison === saisonCourante();
       const bilan = { victoire: 0, nul: 0, defaite: 0 };
-      tousR.data.filter((m) => garder(m.saison)).forEach((m) => { bilan[resultatMatch(m)] += 1; });
+      const buts = { marques: 0, encaisses: 0, matchs: 0 };
+      tousR.data.filter((m) => garder(m.saison)).forEach((m) => {
+        bilan[resultatMatch(m)] += 1;
+        buts.marques += Number(m.score_club) || 0;
+        buts.encaisses += Number(m.score_adverse) || 0;
+        buts.matchs += 1;
+      });
       const lignes = feuillesR.data.filter((l) => saisonDuMatch.has(l.match_id) && garder(saisonDuMatch.get(l.match_id)));
-      return { bilan, buteurs: classement(lignes, 'buts', joueursParId), passeurs: classement(lignes, 'passes', joueursParId) };
+      return { bilan, buts, buteurs: classement(lignes, 'buts', joueursParId), passeurs: classement(lignes, 'passes', joueursParId) };
     };
     const stats = { saison: statistiques('saison'), tout: statistiques('tout') };
 
@@ -4665,6 +4728,7 @@ const __app = (() => {
       const s = stats[portee];
       return {
         resultats: diagrammeResultats(s.bilan),
+        buts: diagrammeButs(s.buts),
         buteurs: listeClassement(s.buteurs, 'but', photos),
         passeurs: listeClassement(s.passeurs, 'passe', photos),
       };
@@ -4700,6 +4764,11 @@ const __app = (() => {
         <section class="bloc carte">
           <div class="bloc-tete"><h2>Résultats</h2><span class="compteur" data-periode>Saison ${saisonCourante()}</span></div>
           <div class="carte-corps" data-rubrique="resultats">${premieres.resultats}</div>
+        </section>
+
+        <section class="bloc carte">
+          <div class="bloc-tete"><h2>Buts</h2><span class="compteur" data-periode>Saison ${saisonCourante()}</span></div>
+          <div class="carte-corps" data-rubrique="buts">${premieres.buts}</div>
         </section>
 
         <section class="bloc carte">
@@ -4763,13 +4832,17 @@ const __app = (() => {
           ${dossiers.length > LIMITE ? html`<a class="lien-carte" href="#/joueurs?dossier=incomplet">Voir les ${dossiers.length} dossiers à régulariser</a>` : ''}
         </section>
 
-        <section class="bloc carte">
+        <section class="bloc carte tdb-matchs">
           <div class="bloc-tete"><h2>Matchs</h2><a class="lien-discret" href="#/matchs">Tous les matchs</a></div>
-          <div class="carte-corps">
-            <h3 class="sous-rubrique">À venir</h3>
-            ${aVenirR.data.length ? html`<ul class="liste-matchs liste-matchs-compacte">${aVenirR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun match programmé.')}
-            <h3 class="sous-rubrique">Derniers résultats</h3>
-            ${resultatsR.data.length ? html`<ul class="liste-matchs liste-matchs-compacte">${resultatsR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun résultat enregistré.')}
+          <div class="carte-corps matchs-deux-colonnes">
+            <div>
+              <h3 class="sous-rubrique">À venir</h3>
+              ${aVenirR.data.length ? html`<ul class="liste-matchs liste-matchs-compacte">${aVenirR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun match programmé.')}
+            </div>
+            <div>
+              <h3 class="sous-rubrique">Derniers résultats</h3>
+              ${resultatsR.data.length ? html`<ul class="liste-matchs liste-matchs-compacte">${resultatsR.data.map((m) => ligneMatch(m, avecFeuille))}</ul>` : vide('Aucun résultat enregistré.')}
+            </div>
           </div>
         </section>
       </div>`);
@@ -4777,7 +4850,7 @@ const __app = (() => {
     vue.querySelectorAll('input[name="portee-stats"]').forEach((r) => r.addEventListener('change', () => {
       const rubriques = rubriquesStats(r.value);
       Object.entries(rubriques).forEach(([cle, contenu]) => setHtml(vue.querySelector(`[data-rubrique="${cle}"]`), contenu));
-      vue.querySelector('[data-periode]').textContent = r.value === 'tout' ? 'Toutes les saisons' : `Saison ${saisonCourante()}`;
+      vue.querySelectorAll('[data-periode]').forEach((e) => { e.textContent = r.value === 'tout' ? 'Toutes les saisons' : `Saison ${saisonCourante()}`; });
     }));
   }
 
